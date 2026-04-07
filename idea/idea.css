@@ -1,0 +1,113 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  background: #0b1626;
+  color: #fff;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background: #111c2f;
+  padding: 20px;
+}
+
+.sidebar h1 {
+  margin-bottom: 30px;
+}
+
+.sidebar nav a {
+  display: block;
+  color: #ccc;
+  text-decoration: none;
+  margin: 10px 0;
+}
+
+.sidebar nav a.active,
+.sidebar nav a:hover {
+  color: #fff;
+}
+
+/* Main */
+.main {
+  flex: 1;
+  padding: 30px;
+}
+
+.topbar h2 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+/* Grid */
+.idea-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* Card */
+.idea-card {
+  background: #1a2438;
+  padding: 12px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.image {
+  width: 100%;
+  height: 120px;
+  background: #333;
+  border-radius: 8px;
+}
+
+/* Tags */
+.tag {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.sketch { background: orange; }
+.flow { background: purple; }
+.color { background: red; }
+.design { background: green; }
+
+/* Footer */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #ccc;
+}
+
+/* Floating Add Button */
+.floating-add {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  background: #1f2f4a;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.floating-add:hover {
+  background: #2d4466;
+}

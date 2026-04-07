@@ -1,0 +1,85 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  background: #0b1626;
+  color: #fff;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background: #111c2f;
+  padding: 20px;
+}
+
+.sidebar h1 {
+  margin-bottom: 30px;
+  font-size: 20px;
+}
+
+.sidebar nav a {
+  display: block;
+  color: #ccc;
+  text-decoration: none;
+  margin: 10px 0;
+  transition: 0.2s;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  color: #fff;
+}
+
+/* Main */
+.main {
+  flex: 1;
+  padding: 30px;
+}
+
+.topbar h2 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+/* Projects */
+.projects {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.project-card {
+  width: 150px;
+  height: 150px;
+  background: #2a3a55;
+  border-radius: 12px;
+}
+
+.project-card.filled {
+  background: #ccc;
+}
+
+/* Add button */
+.add-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #1f2f4a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-btn:hover {
+  background: #2d4466;
+}
