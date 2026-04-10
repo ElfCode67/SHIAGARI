@@ -1,0 +1,72 @@
+body {
+  display: flex;
+  background: #081526;
+  color: white;
+  font-family: Arial;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background: #111c2f;
+  padding: 20px;
+}
+
+.sidebar a {
+  display: block;
+  color: #aaa;
+  margin: 10px 0;
+}
+
+.sidebar a.active {
+  color: white;
+}
+
+/* Main */
+.main {
+  flex: 1;
+  padding: 40px;
+}
+
+/* Post box */
+.post-box {
+  display: flex;
+  gap: 10px;
+  background: #14233b;
+  padding: 15px;
+  border-radius: 20px;
+  margin-bottom: 30px;
+}
+
+.post-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+}
+
+.post-box button {
+  background: #3b82f6;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+/* Post */
+.post {
+  background: #0f1f35;
+  padding: 20px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.user {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.user img {
+  border-radius: 50%;
+}

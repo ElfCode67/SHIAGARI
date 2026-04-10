@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chats</title>
+  <link rel="stylesheet" href="message.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <h1>SHIAGARI</h1>
+  <nav>
+    <a href="landing.html">Projects</a>
+    <a href="idea.html">Idea Factory</a>
+    <a href="progress.html">Progress Tracker</a>
+    <a href="announcement.html">Post Board</a>
+    <a href="#" class="active">Chats</a>
+  </nav>
+</aside>
+
+<!-- Chat list -->
+<div class="chat-list">
+  <div class="chat-user">Vince Villar</div>
+  <div class="chat-user">Ayelet De Castro</div>
+</div>
+
+<!-- Chat window -->
+<div class="chat-window" id="chatWindow">
+  <div class="chat-header" id="dragHandle">
+    Vince Villar
+    <span id="minBtn">—</span>
+  </div>
+
+  <div class="chat-body">
+    <div class="msg left">Hello!</div>
+    <div class="msg right">Hi!</div>
+  </div>
+
+  <div class="chat-input">
+    <input type="text" placeholder="Type a message">
+  </div>
+</div>
+
+<script src="message.js"></script>
+</body>
+</html>
