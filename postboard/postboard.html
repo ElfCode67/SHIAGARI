@@ -2,58 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Post Board</title>
-  <link rel="stylesheet" href="announcement.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>SHIAGARI · Post Board</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="postboard.css">
 </head>
 <body>
 
 <aside class="sidebar">
   <h1>SHIAGARI</h1>
   <nav>
-    <a href="landing.html">Projects</a>
-    <a href="idea.html">Idea Factory</a>
-    <a href="progress.html">Progress Tracker</a>
-    <a href="#" class="active">Post Board</a>
-    <a href="message.html">Chats</a>
+    <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+    <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+    <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+    <a href="../roadmap/roadmap.html"><i class="fas fa-map"></i> <span>Roadmap</span></a>
+    <a href="../postboard/postboard.html" class="active"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
+    <a href="../message/message.html"><i class="fas fa-comments"></i> <span>Chats</span></a>
   </nav>
 </aside>
 
 <main class="main">
+  <header class="topbar">
+    <h2><i class="fas fa-newspaper"></i> Post Board</h2>
+    <div class="stats-badge">
+      <i class="fas fa-pen-fancy"></i>
+      <span id="postCount">0</span> posts
+    </div>
+  </header>
 
   <!-- Post input -->
   <div class="post-box">
-    <img src="https://via.placeholder.com/40">
-    <input type="text" placeholder="Post something...">
-    <button>Post</button>
+    <img src="https://ui-avatars.com/api/?background=3b82f6&color=fff&name=ME" alt="You">
+    <input type="text" id="postInput" placeholder="Share an announcement, update, or thought...">
+    <button id="postBtn"><i class="fas fa-paper-plane"></i> Post</button>
   </div>
 
-  <!-- Post -->
-  <div class="post">
-    <div class="user">
-      <img src="https://via.placeholder.com/40">
-      <div>
-        <h4>Sean Arkin Balmes</h4>
-        <span>Project Manager</span>
-      </div>
-    </div>
-
-    <h3>ANNOUNCEMENT</h3>
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
+  <!-- Posts container -->
+  <div class="posts-container" id="postsContainer">
+    <!-- Dynamic posts will be injected here -->
   </div>
-
-  <div class="post">
-    <div class="user">
-      <img src="https://via.placeholder.com/40">
-      <div>
-        <h4>Sean Arkin Balmes</h4>
-      </div>
-    </div>
-
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-  </div>
-
 </main>
 
-<script src="announcement.js"></script>
+<script src="postboard.js"></script>
 </body>
 </html>

@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>SHIAGARI · Chats</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="message.css">
 </head>
 <body>
@@ -10,34 +13,67 @@
 <aside class="sidebar">
   <h1>SHIAGARI</h1>
   <nav>
-    <a href="landing.html">Projects</a>
-    <a href="idea.html">Idea Factory</a>
-    <a href="progress.html">Progress Tracker</a>
-    <a href="announcement.html">Post Board</a>
-    <a href="#" class="active">Chats</a>
+    <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+    <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+    <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+    <a href="../roadmap/roadmap.html"><i class="fas fa-map"></i> <span>Roadmap</span></a>
+    <a href="../postboard/postboard.html"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
+    <a href="../message/message.html" class="active"><i class="fas fa-comments"></i> <span>Chats</span></a>
   </nav>
 </aside>
 
 <!-- Chat list -->
 <div class="chat-list">
-  <div class="chat-user">Vince Villar</div>
-  <div class="chat-user">Ayelet De Castro</div>
+  <div class="chat-list-header">
+    <i class="fas fa-users"></i> Conversations
+  </div>
+  <div class="chat-user active" data-user="Vince Villar">
+    <img src="https://ui-avatars.com/api/?background=3b82f6&color=fff&name=VV" alt="VV">
+    <div class="chat-user-info">
+      <span class="chat-user-name">Vince Villar</span>
+      <span class="chat-user-preview">Hey! How's the project?</span>
+    </div>
+  </div>
+  <div class="chat-user" data-user="Ayelet De Castro">
+    <img src="https://ui-avatars.com/api/?background=10b981&color=fff&name=AD" alt="AD">
+    <div class="chat-user-info">
+      <span class="chat-user-name">Ayelet De Castro</span>
+      <span class="chat-user-preview">Great work on the design!</span>
+    </div>
+  </div>
 </div>
 
 <!-- Chat window -->
 <div class="chat-window" id="chatWindow">
   <div class="chat-header" id="dragHandle">
-    Vince Villar
-    <span id="minBtn">—</span>
+    <div class="chat-header-info">
+      <img src="https://ui-avatars.com/api/?background=3b82f6&color=fff&name=VV" alt="VV" id="currentAvatar">
+      <span id="currentUserName">Vince Villar</span>
+    </div>
+    <div class="chat-header-actions">
+      <button id="minBtn" class="chat-action-btn"><i class="fas fa-minus"></i></button>
+    </div>
   </div>
 
-  <div class="chat-body">
-    <div class="msg left">Hello!</div>
-    <div class="msg right">Hi!</div>
+  <div class="chat-body" id="chatBody">
+    <div class="msg left">
+      <div class="msg-avatar">VV</div>
+      <div class="msg-content">
+        <div class="msg-text">Hello!</div>
+        <div class="msg-time">10:30 AM</div>
+      </div>
+    </div>
+    <div class="msg right">
+      <div class="msg-content">
+        <div class="msg-text">Hi there! 👋</div>
+        <div class="msg-time">10:31 AM</div>
+      </div>
+    </div>
   </div>
 
   <div class="chat-input">
-    <input type="text" placeholder="Type a message">
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
   </div>
 </div>
 
