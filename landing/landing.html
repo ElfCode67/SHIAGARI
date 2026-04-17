@@ -4,39 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>SHIAGARI · Projects Board</title>
-  <!-- Google Fonts + Font Awesome icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="landing.css">
 </head>
 <body>
 
-  <!-- Sidebar -->
   <aside class="sidebar">
     <h1>SHIAGARI</h1>
     <nav>
-      <a href="#"><i class="fas fa-home"></i> Home</a>
-      <a href="#" class="active"><i class="fas fa-project-diagram"></i> Projects</a>
-      <a href="idea.html"><i class="fas fa-lightbulb"></i> Idea Factory</a>
-      <a href="#"><i class="fas fa-chart-line"></i> Progress Tracker</a>
-      <a href="#"><i class="fas fa-clipboard-list"></i> Post Board</a>
-      <a href="#"><i class="fas fa-comments"></i> Chats</a>
+      <a href="../landing/landing.html" class="active"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+      <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+      <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+      <a href="#" id="navRoadmap"><i class="fas fa-clipboard-list"></i> <span>Roadmap</span></a>
     </nav>
   </aside>
 
-  <!-- Main -->
   <main class="main">
     <header class="topbar">
       <h2>Projects</h2>
       <div class="stats-badge">
         <i class="fas fa-rocket"></i>
-        <span id="projectCount">4</span> active projects
+        <span id="projectCount">0</span> active projects
       </div>
     </header>
 
-    <section class="projects" id="projectsGrid">
-      <!-- Project cards will be dynamically injected by JS -->
-    </section>
+    <section class="projects" id="projectsGrid"></section>
   </main>
 
   <!-- Add Project Modal -->
@@ -49,7 +42,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label><i class="fas fa-tag"></i> Project Name</label>
-          <input type="text" id="projectName" placeholder="e.g., AI Dashboard, Mobile App" maxlength="40">
+          <input type="text" id="projectName" placeholder="e.g., AI Dashboard" maxlength="40">
         </div>
         <div class="form-group">
           <label><i class="fas fa-align-left"></i> Description</label>
@@ -71,7 +64,6 @@
     </div>
   </div>
 
-  <!-- Toast notification -->
   <div class="toast" id="toastMsg">
     <i class="fas fa-check-circle"></i>
     <span id="toastText">Project created!</span>

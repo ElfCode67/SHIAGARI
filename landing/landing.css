@@ -10,22 +10,18 @@ body {
   color: #fff;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
   line-height: 1.4;
-  scroll-behavior: smooth;
 }
 
-/* ---------- SIDEBAR (enhanced, same structure) ---------- */
 .sidebar {
   width: 260px;
   height: 100vh;
   background: #0f172a;
-  backdrop-filter: blur(2px);
   padding: 32px 20px;
   position: sticky;
   top: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s;
 }
 
 .sidebar h1 {
@@ -51,17 +47,13 @@ body {
   border-radius: 4px;
 }
 
-.sidebar nav {
-  flex: 1;
-}
-
 .sidebar nav a {
   display: flex;
   align-items: center;
   gap: 12px;
   color: #9ca3af;
   text-decoration: none;
-  margin: 12px 0;
+  margin: 8px 0;
   padding: 10px 12px;
   border-radius: 12px;
   transition: all 0.2s ease;
@@ -72,27 +64,21 @@ body {
 .sidebar nav a i {
   width: 22px;
   font-size: 1.2rem;
-  text-align: center;
 }
 
-.sidebar nav a:hover {
-  background: #1e293b;
-  color: #f1f5f9;
-  transform: translateX(4px);
-}
-
+.sidebar nav a:hover,
 .sidebar nav a.active {
   background: #1e293b;
   color: white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar nav a.active {
   border-left: 3px solid #3b82f6;
 }
 
-/* ---------- MAIN CONTENT ---------- */
 .main {
   flex: 1;
   padding: 32px 40px;
-  overflow-x: auto;
   background: #0b1120;
   min-height: 100vh;
 }
@@ -100,11 +86,12 @@ body {
 .topbar {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 16px;
   margin-bottom: 32px;
-  border-bottom: 1px solid #1e2a3e;
   padding-bottom: 16px;
+  border-bottom: 1px solid #1e2a3e;
 }
 
 .topbar h2 {
@@ -114,7 +101,6 @@ body {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  letter-spacing: -0.3px;
 }
 
 .stats-badge {
@@ -134,7 +120,6 @@ body {
   color: #3b82f6;
 }
 
-/* ----- PROJECT GRID (responsive & interactive) ----- */
 .projects {
   display: flex;
   flex-wrap: wrap;
@@ -143,13 +128,11 @@ body {
   margin-top: 12px;
 }
 
-/* project card base style */
 .project-card {
   width: 200px;
   min-height: 200px;
   background: linear-gradient(145deg, #111c2f, #0f1828);
   border-radius: 24px;
-  position: relative;
   transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   cursor: pointer;
   display: flex;
@@ -158,50 +141,28 @@ body {
   padding: 18px;
   border: 1px solid rgba(59, 130, 246, 0.2);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
 }
 
-/* status-based left accent */
-.project-card[data-status="active"] {
-  border-left: 4px solid #10b981;
-}
-
-.project-card[data-status="planning"] {
-  border-left: 4px solid #f59e0b;
-}
-
-.project-card[data-status="hold"] {
-  border-left: 4px solid #ef4444;
-}
+.project-card[data-status="active"] { border-left: 4px solid #10b981; }
+.project-card[data-status="planning"] { border-left: 4px solid #f59e0b; }
+.project-card[data-status="hold"] { border-left: 4px solid #ef4444; }
 
 .project-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.5);
   border-color: #3b82f6;
   background: linear-gradient(145deg, #16233f, #0f1828);
-}
-
-/* card inner content */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
 }
 
 .card-title {
   font-weight: 700;
   font-size: 18px;
-  letter-spacing: -0.2px;
   display: flex;
   align-items: center;
   gap: 8px;
   word-break: break-word;
 }
 
-.card-title i {
-  font-size: 1rem;
-  color: #3b82f6;
-}
+.card-title i { color: #3b82f6; }
 
 .card-desc {
   font-size: 12px;
@@ -234,17 +195,9 @@ body {
   gap: 4px;
 }
 
-.status-badge.active {
-  color: #10b981;
-}
-
-.status-badge.planning {
-  color: #f59e0b;
-}
-
-.status-badge.hold {
-  color: #ef4444;
-}
+.status-badge.active { color: #10b981; }
+.status-badge.planning { color: #f59e0b; }
+.status-badge.hold { color: #ef4444; }
 
 .delete-card {
   background: none;
@@ -252,7 +205,6 @@ body {
   color: #6b7280;
   cursor: pointer;
   font-size: 14px;
-  transition: 0.2s;
   padding: 4px 8px;
   border-radius: 8px;
 }
@@ -262,7 +214,6 @@ body {
   background: rgba(239, 68, 68, 0.15);
 }
 
-/* Add button (circular, consistent with original) */
 .add-btn {
   width: 56px;
   height: 56px;
@@ -273,7 +224,6 @@ body {
   align-items: center;
   font-size: 26px;
   cursor: pointer;
-  transition: all 0.2s ease;
   color: white;
   border: 1px solid #3b82f6;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -283,10 +233,8 @@ body {
 .add-btn:hover {
   background: #2d4466;
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
 }
 
-/* Modal styles */
 .modal {
   display: none;
   position: fixed;
@@ -299,7 +247,6 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
 }
 
 .modal-content {
@@ -308,8 +255,6 @@ body {
   width: 90%;
   max-width: 460px;
   border: 1px solid #2d3a5e;
-  box-shadow: 0 25px 40px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.25s ease;
 }
 
 .modal-header {
@@ -320,62 +265,15 @@ body {
   border-bottom: 1px solid #1e2a3e;
 }
 
-.modal-header h3 {
-  font-size: 20px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.modal-header h3 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.modal-header h3 i { color: #3b82f6; }
+.modal-close { background: none; border: none; font-size: 28px; color: #9ca3af; cursor: pointer; }
 
-.modal-header h3 i {
-  color: #3b82f6;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: #9ca3af;
-  cursor: pointer;
-  transition: 0.2s;
-  line-height: 1;
-}
-
-.modal-close:hover {
-  color: white;
-}
-
-.modal-body {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #cbd5e1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.form-group label i {
-  color: #3b82f6;
-  font-size: 12px;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
+.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 13px; font-weight: 500; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
+.form-group label i { color: #3b82f6; }
+.form-group input, .form-group textarea, .form-group select {
   background: #111827;
   border: 1px solid #2d3a5e;
   border-radius: 14px;
@@ -383,65 +281,24 @@ body {
   color: white;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  transition: 0.2s;
 }
-
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
-.form-group textarea {
-  resize: vertical;
-}
+.modal-footer { padding: 16px 24px 24px; display: flex; justify-content: flex-end; gap: 12px; }
+.btn-primary, .btn-secondary { padding: 10px 20px; border-radius: 40px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: #1e293b; color: #cbd5e1; }
+.btn-secondary:hover { background: #334155; }
 
-.modal-footer {
-  padding: 16px 24px 24px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 10px 20px;
-  border-radius: 40px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.2s;
-  border: none;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
-  transform: scale(0.98);
-}
-
-.btn-secondary {
-  background: #1e293b;
-  color: #cbd5e1;
-}
-
-.btn-secondary:hover {
-  background: #334155;
-}
-
-/* Toast notification */
 .toast {
   position: fixed;
   bottom: 30px;
   right: 30px;
   background: #1e293b;
-  backdrop-filter: blur(8px);
   padding: 12px 20px;
   border-radius: 40px;
   display: flex;
@@ -450,100 +307,26 @@ body {
   font-size: 14px;
   font-weight: 500;
   border-left: 4px solid #10b981;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
   transform: translateX(400px);
   transition: transform 0.3s ease;
   z-index: 1100;
 }
+.toast.show { transform: translateX(0); }
 
-.toast.show {
-  transform: translateX(0);
-}
-
-.toast i {
-  color: #10b981;
-  font-size: 18px;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Empty state */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
   color: #6b7280;
   width: 100%;
 }
+.empty-state i { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
 
-.empty-state i {
-  font-size: 56px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 16px;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .sidebar {
-    width: 80px;
-    padding: 24px 12px;
-  }
-  .sidebar h1 {
-    font-size: 14px;
-    text-align: center;
-  }
-  .sidebar h1::after {
-    width: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .sidebar nav a span {
-    display: none;
-  }
-  .sidebar nav a i {
-    margin: 0;
-    font-size: 1.4rem;
-  }
-  .main {
-    padding: 20px;
-  }
-  .project-card {
-    width: 160px;
-    min-height: 180px;
-  }
-  .topbar h2 {
-    font-size: 24px;
-  }
-}
-
-@media (max-width: 550px) {
-  .project-card {
-    width: 100%;
-    max-width: 260px;
-  }
-  .projects {
-    justify-content: center;
-  }
+  .sidebar { width: 80px; padding: 24px 12px; }
+  .sidebar h1 { font-size: 14px; text-align: center; }
+  .sidebar h1::after { width: 20px; left: 50%; transform: translateX(-50%); }
+  .sidebar nav a span { display: none; }
+  .sidebar nav a i { margin: 0; font-size: 1.4rem; }
+  .main { padding: 20px; }
+  .project-card { width: 160px; }
 }

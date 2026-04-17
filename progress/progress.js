@@ -1,7 +1,6 @@
 // SHIAGARI - Progress Tracker (KISS, DRY, YAGNI compliant)
 
 // ==================== DATA MODEL ====================
-// Simple, flat data structure - one source of truth
 let projectsData = {
   project1: {
     name: 'Dashboard Redesign',
@@ -34,7 +33,6 @@ let projectsData = {
   }
 };
 
-// Status order for columns
 const STATUS_ORDER = ['notstarted', 'inprogress', 'finished'];
 const STATUS_LABELS = {
   notstarted: '📋 NOT STARTED',
@@ -42,7 +40,6 @@ const STATUS_LABELS = {
   finished: '✅ FINISHED'
 };
 
-// Category config
 const CATEGORY_CONFIG = {
   uiux: { name: 'UI/UX', color: '#ff2d75', class: 'uiux' },
   frontend: { name: 'Frontend', color: '#3b82f6', class: 'frontend' },
@@ -67,11 +64,29 @@ function loadFromLocalStorage() {
   }
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
 // ==================== CORE BUSINESS LOGIC ====================
 function getTasksByStatus(projectId, status) {
   const project = projectsData[projectId];
   if (!project) return [];
   return project.tasks.filter(task => task.status === status);
+}
+
+function findTaskById(taskId) {
+  for (let projectId in projectsData) {
+    const task = projectsData[projectId].tasks.find(t => t.id === taskId);
+    if (task) return task;
+  }
+  return null;
 }
 
 function updateTaskStatus(taskId, newStatus) {
@@ -178,10 +193,10 @@ function updateChart(projectId) {
   const frontend = categoryProgress.frontend || 0;
   const backend = categoryProgress.backend || 0;
   
-  // Calculate conic gradient
   const total = uiux + frontend + backend;
   if (total === 0) {
-    document.getElementById('chartCircle').style.background = '#2d3f5f';
+    const chartCircle = document.getElementById('chartCircle');
+    if (chartCircle) chartCircle.style.background = '#2d3f5f';
     return;
   }
   
@@ -197,10 +212,69 @@ function updateChart(projectId) {
   const chartCircle = document.getElementById('chartCircle');
   if (chartCircle) chartCircle.style.background = gradient;
   
-  // Update legend values
-  document.getElementById('legendUIUX').textContent = `${uiux}%`;
-  document.getElementById('legendFrontend').textContent = `${frontend}%`;
-  document.getElementById('legendBackend').textContent = `${backend}%`;
+  const legendUIUX = document.getElementById('legendUIUX');
+  const legendFrontend = document.getElementById('legendFrontend');
+  const legendBackend = document.getElementById('legendBackend');
+  
+  if (legendUIUX) legendUIUX.textContent = `${uiux}%`;
+  if (legendFrontend) legendFrontend.textContent = `${frontend}%`;
+  if (legendBackend) legendBackend.textContent = `${backend}%`;
+}
+
+// ==================== DRAG & DROP ====================
+let draggedTaskId = null;
+
+function attachDragAndDrop() {
+  const tasks = document.querySelectorAll('.task[draggable="true"]');
+  const columns = document.querySelectorAll('.column');
+  
+  tasks.forEach(task => {
+    task.setAttribute('draggable', 'true');
+    task.addEventListener('dragstart', handleDragStart);
+    task.addEventListener('dragend', handleDragEnd);
+  });
+  
+  columns.forEach(column => {
+    column.addEventListener('dragover', handleDragOver);
+    column.addEventListener('dragleave', handleDragLeave);
+    column.addEventListener('drop', handleDrop);
+  });
+}
+
+function handleDragStart(e) {
+  draggedTaskId = this.getAttribute('data-task-id');
+  this.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+  this.style.opacity = '';
+  draggedTaskId = null;
+  document.querySelectorAll('.column').forEach(col => {
+    col.style.borderColor = '';
+  });
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  this.style.borderColor = '#3b82f6';
+}
+
+function handleDragLeave(e) {
+  this.style.borderColor = '';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  this.style.borderColor = '';
+  const targetColumn = this.closest('.column');
+  if (!targetColumn || !draggedTaskId) return;
+  
+  const newStatus = targetColumn.getAttribute('data-status');
+  if (newStatus) {
+    updateTaskStatus(draggedTaskId, newStatus);
+  }
 }
 
 // ==================== RENDER UI ====================
@@ -221,7 +295,7 @@ function renderColumns(projectId) {
   STATUS_ORDER.forEach(status => {
     const tasks = getTasksByStatus(projectId, status);
     const statusLabel = STATUS_LABELS[status];
-    const icon = status === 'notstarted' ? 'fa-clock' : (status === 'inprogress' ? 'fa-spinner' : 'fa-check-circle');
+    const icon = status === 'notstarted' ? 'fa-clock' : (status === 'inprogress' ? 'fa-spinner fa-pulse' : 'fa-check-circle');
     
     columnsHtml += `
       <div class="column" data-status="${status}">
@@ -258,10 +332,10 @@ function renderColumns(projectId) {
               </div>
             </div>
             <div class="task-actions">
-              <button class="task-action-btn increment-progress" data-id="${task.id}" data-increment="10">
+              <button class="task-action-btn increment-progress" data-id="${task.id}">
                 <i class="fas fa-plus-circle"></i> +10%
               </button>
-              <button class="task-action-btn decrement-progress" data-id="${task.id}" data-decrement="10">
+              <button class="task-action-btn decrement-progress" data-id="${task.id}">
                 <i class="fas fa-minus-circle"></i> -10%
               </button>
               <button class="task-action-btn delete-task" data-id="${task.id}">
@@ -282,7 +356,6 @@ function renderColumns(projectId) {
     `;
   });
   
-  // Add chart section
   columnsHtml += `
     <div class="chart-section">
       <div class="chart-title">
@@ -327,7 +400,6 @@ function updateStats(projectId) {
 }
 
 function attachTaskEventListeners() {
-  // Increment progress buttons
   document.querySelectorAll('.increment-progress').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -337,7 +409,6 @@ function attachTaskEventListeners() {
     });
   });
   
-  // Decrement progress buttons
   document.querySelectorAll('.decrement-progress').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -347,7 +418,6 @@ function attachTaskEventListeners() {
     });
   });
   
-  // Delete buttons
   document.querySelectorAll('.delete-task').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -356,7 +426,6 @@ function attachTaskEventListeners() {
     });
   });
   
-  // Add task buttons per column
   document.querySelectorAll('.add-task-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -364,69 +433,6 @@ function attachTaskEventListeners() {
       openAddTaskModal(status);
     });
   });
-}
-
-function findTaskById(taskId) {
-  for (let projectId in projectsData) {
-    const task = projectsData[projectId].tasks.find(t => t.id === taskId);
-    if (task) return task;
-  }
-  return null;
-}
-
-// ==================== DRAG & DROP ====================
-function attachDragAndDrop() {
-  const tasks = document.querySelectorAll('.task[draggable="true"]');
-  const columns = document.querySelectorAll('.column');
-  
-  tasks.forEach(task => {
-    task.addEventListener('dragstart', handleDragStart);
-    task.addEventListener('dragend', handleDragEnd);
-  });
-  
-  columns.forEach(column => {
-    column.addEventListener('dragover', handleDragOver);
-    column.addEventListener('dragleave', handleDragLeave);
-    column.addEventListener('drop', handleDrop);
-  });
-}
-
-let draggedTaskId = null;
-
-function handleDragStart(e) {
-  draggedTaskId = this.getAttribute('data-task-id');
-  this.style.opacity = '0.5';
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragEnd(e) {
-  this.style.opacity = '';
-  draggedTaskId = null;
-  document.querySelectorAll('.column').forEach(col => {
-    col.style.borderColor = '';
-  });
-}
-
-function handleDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  this.style.borderColor = '#3b82f6';
-}
-
-function handleDragLeave(e) {
-  this.style.borderColor = '';
-}
-
-function handleDrop(e) {
-  e.preventDefault();
-  this.style.borderColor = '';
-  const targetColumn = this.closest('.column');
-  if (!targetColumn || !draggedTaskId) return;
-  
-  const newStatus = targetColumn.getAttribute('data-status');
-  if (newStatus) {
-    updateTaskStatus(draggedTaskId, newStatus);
-  }
 }
 
 // ==================== MODAL ====================
@@ -441,6 +447,7 @@ function openAddTaskModal(status) {
   document.getElementById('taskCategory').value = 'uiux';
   document.getElementById('taskColumn').value = status;
   modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('taskName').focus(), 100);
 }
 
 function closeModal() {
@@ -489,20 +496,18 @@ function showToast(message, type = 'success') {
   }, 2500);
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
 // ==================== PROJECT SELECTOR ====================
 function initProjectSelector() {
   const select = document.getElementById('projectSelect');
   if (!select) return;
+  
+  // Populate project names in dropdown
+  for (let projectId in projectsData) {
+    const option = select.querySelector(`option[value="${projectId}"]`);
+    if (option) {
+      option.textContent = `${projectsData[projectId].name}`;
+    }
+  }
   
   select.addEventListener('change', (e) => {
     currentProjectId = e.target.value;
@@ -516,7 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initProjectSelector();
   renderCurrentProject();
   
-  // Modal event listeners
   const closeBtn = document.getElementById('closeModalBtn');
   const cancelBtn = document.getElementById('cancelModalBtn');
   const saveBtn = document.getElementById('saveTaskBtn');
@@ -532,10 +536,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Keyboard shortcut: ESC closes modal
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.style.display === 'flex') {
+    if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
       closeModal();
     }
   });
+  
+  // Roadmap placeholder
+  const navRoadmap = document.getElementById('navRoadmap');
+  if (navRoadmap) {
+    navRoadmap.addEventListener('click', (e) => {
+      e.preventDefault();
+      showToast('Roadmap planner coming soon!', 'info');
+    });
+  }
 });

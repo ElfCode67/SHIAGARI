@@ -3,27 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>SHIAGARI - Idea Factory</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <title>SHIAGARI · Idea Factory</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="idea.css">
 </head>
 <body>
 
-  <!-- Sidebar -->
   <aside class="sidebar">
     <h1>SHIAGARI</h1>
     <nav>
-      <a href="landing.html"><i class="fas fa-home"></i> Home</a>
-      <a href="landing.html"><i class="fas fa-project-diagram"></i> Projects</a>
-      <a href="#" class="active"><i class="fas fa-lightbulb"></i> Idea Factory</a>
-      <a href="#"><i class="fas fa-chart-line"></i> Progress Tracker</a>
-      <a href="#"><i class="fas fa-clipboard-list"></i> Post Board</a>
-      <a href="#"><i class="fas fa-comments"></i> Chats</a>
+      <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+      <a href="../idea/idea.html" class="active"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+      <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+      <a href="#" id="navRoadmap"><i class="fas fa-clipboard-list"></i> <span>Roadmap</span></a>
     </nav>
   </aside>
 
-  <!-- Main -->
   <main class="main">
     <header class="topbar">
       <h2><i class="fas fa-lightbulb"></i> Idea Factory</h2>
@@ -33,17 +29,14 @@
       </div>
     </header>
 
-    <section class="idea-grid" id="ideaGrid">
-      <!-- Dynamic idea cards will be injected here -->
-    </section>
+    <section class="idea-grid" id="ideaGrid"></section>
 
-    <!-- Floating Add Button -->
     <div class="floating-add" id="floatingAddBtn">
       <i class="fas fa-plus"></i>
     </div>
   </main>
 
-  <!-- Add/Edit Idea Modal -->
+  <!-- Add/Edit Modal -->
   <div class="modal" id="ideaModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -82,16 +75,14 @@
     </div>
   </div>
 
-  <!-- Idea Detail Modal (View Mode) -->
+  <!-- Detail View Modal -->
   <div class="modal" id="detailModal">
     <div class="modal-content detail-modal">
       <div class="modal-header">
         <h3 id="detailTitle"><i class="fas fa-lightbulb"></i> Idea Details</h3>
         <button class="modal-close" id="closeDetailBtn">&times;</button>
       </div>
-      <div class="modal-body" id="detailBody">
-        <!-- Dynamic content -->
-      </div>
+      <div class="modal-body" id="detailBody"></div>
       <div class="modal-footer">
         <button class="btn-secondary" id="closeDetailModalBtn">Close</button>
         <button class="btn-primary" id="editFromDetailBtn">Edit Idea</button>
@@ -99,7 +90,6 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
   <div class="toast" id="toastMsg">
     <i class="fas fa-check-circle"></i>
     <span id="toastText">Idea saved!</span>
