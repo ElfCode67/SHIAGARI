@@ -641,3 +641,273 @@ body {
     align-items: flex-start;
   }
 }
+
+/* ---------- MEMBER LIST (Discord Style) ---------- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-nav {
+  flex-shrink: 0;
+}
+
+/* Member List Section */
+.sidebar-members {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 24px;
+  padding-bottom: 16px;
+}
+
+.members-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.members-header i {
+  color: #3b82f6;
+  font-size: 12px;
+}
+
+.member-count {
+  margin-left: auto;
+  background: #1e293b;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.member:hover {
+  background: #1e293b;
+}
+
+.member img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e2e8f0;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-role {
+  font-size: 11px;
+  color: #6b7280;
+  display: block;
+}
+
+/* Status indicators */
+.status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status.online {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.status.away {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.status.offline {
+  background: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+}
+
+/* Member list scrollbar */
+.members-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.members-list::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.members-list::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+/* ---------- YOUR ACCOUNT SECTION (Discord Style Bottom) ---------- */
+.sidebar-account {
+  margin-top: auto;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 0;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.account-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3b82f6;
+}
+
+.account-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-status {
+  font-size: 11px;
+  color: #10b981;
+  display: block;
+}
+
+.account-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.account-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-btn:hover {
+  background: #1e293b;
+  color: #3b82f6;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .sidebar-members {
+    margin-top: 16px;
+  }
+  
+  .member {
+    padding: 6px 8px;
+    justify-content: center;
+  }
+  
+  .member-info {
+    display: none;
+  }
+  
+  .member img {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .members-header span:not(.member-count) {
+    display: none;
+  }
+  
+  .members-header i {
+    font-size: 14px;
+  }
+  
+  .member-count {
+    margin-left: 0;
+  }
+  
+  .status {
+    position: absolute;
+    bottom: 2px;
+    right: 6px;
+    border: 2px solid #0f172a;
+  }
+  
+  /* Account section mobile */
+  .sidebar-account {
+    padding: 8px;
+  }
+  
+  .account-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .account-details {
+    display: none;
+  }
+  
+  .account-actions {
+    gap: 4px;
+  }
+  
+  .account-btn {
+    padding: 4px;
+  }
+}

@@ -11,16 +11,88 @@
 <body>
 
   <aside class="sidebar">
-    <h1>SHIAGARI</h1>
-    <nav>
-      <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
-      <a href="../idea/idea.html" class="active"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
-      <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
-      <a href="../roadmap/roadmap.html"><i class="fas fa-map"></i> <span>Roadmap</span></a>
-      <a href="../postboard/postboard.html"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
-      <a href="../message/message.html"><i class="fas fa-comments"></i> <span>Chats</span></a>
-    </nav>
-  </aside>
+  <h1>SHIAGARI</h1>
+  
+  <!-- Navigation Links -->
+  <nav class="sidebar-nav">
+    <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+    <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+    <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+    <a href="../roadmap/roadmap.html"><i class="fas fa-map"></i> <span>Roadmap</span></a>
+    <a href="../postboard/postboard.html"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
+    <a href="../message/message.html"><i class="fas fa-comments"></i> <span>Chats</span></a>
+  </nav>
+
+  <!-- Member List Section (above account) -->
+  <div class="sidebar-members">
+    <div class="members-header">
+      <i class="fas fa-users"></i>
+      <span>Team Members</span>
+      <span class="member-count" id="memberCount">5</span>
+    </div>
+    <div class="members-list" id="membersList">
+      <div class="member" data-user="Vince Villar">
+        <img src="https://ui-avatars.com/api/?background=3b82f6&color=fff&name=VV" alt="Vince">
+        <div class="member-info">
+          <span class="member-name">Vince Villar</span>
+          <span class="member-role">Lead Developer</span>
+        </div>
+        <span class="status online"></span>
+      </div>
+      <div class="member" data-user="Ayelet De Castro">
+        <img src="https://ui-avatars.com/api/?background=10b981&color=fff&name=AD" alt="Ayelet">
+        <div class="member-info">
+          <span class="member-name">Ayelet De Castro</span>
+          <span class="member-role">UI/UX Designer</span>
+        </div>
+        <span class="status online"></span>
+      </div>
+      <div class="member" data-user="Sean Arkin Balmes">
+        <img src="https://ui-avatars.com/api/?background=f59e0b&color=fff&name=SB" alt="Sean">
+        <div class="member-info">
+          <span class="member-name">Sean Arkin Balmes</span>
+          <span class="member-role">Project Manager</span>
+        </div>
+        <span class="status away"></span>
+      </div>
+      <div class="member" data-user="Maria Santos">
+        <img src="https://ui-avatars.com/api/?background=8b5cf6&color=fff&name=MS" alt="Maria">
+        <div class="member-info">
+          <span class="member-name">Maria Santos</span>
+          <span class="member-role">QA Engineer</span>
+        </div>
+        <span class="status offline"></span>
+      </div>
+      <div class="member" data-user="James Wilson">
+        <img src="https://ui-avatars.com/api/?background=ef4444&color=fff&name=JW" alt="James">
+        <div class="member-info">
+          <span class="member-name">James Wilson</span>
+          <span class="member-role">DevOps</span>
+        </div>
+        <span class="status online"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Your Account Section (bottom of sidebar, like Discord) -->
+  <div class="sidebar-account">
+    <div class="account-info">
+      <img src="https://ui-avatars.com/api/?background=3b82f6&color=fff&name=ME&bold=true" alt="Your Avatar" class="account-avatar">
+      <div class="account-details">
+        <span class="account-name">Current User</span>
+        <span class="account-status">Online</span>
+      </div>
+    </div>
+    <div class="account-actions">
+      <button class="account-btn" id="settingsBtn" title="Settings">
+        <i class="fas fa-cog"></i>
+      </button>
+      <button class="account-btn" id="logoutBtn" title="Logout">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </div>
+</aside>
 
   <main class="main">
     <header class="topbar">

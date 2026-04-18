@@ -250,3 +250,133 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPosts();
   initPostCreation();
 });
+
+// ==================== MEMBER LIST & ACCOUNT FUNCTIONALITY ====================
+
+// Team members data (placeholder for future database)
+const teamMembers = [
+  { name: 'Vince Villar', role: 'Lead Developer', status: 'online', avatar: 'VV', color: '3b82f6' },
+  { name: 'Ayelet De Castro', role: 'UI/UX Designer', status: 'online', avatar: 'AD', color: '10b981' },
+  { name: 'Sean Arkin Balmes', role: 'Project Manager', status: 'away', avatar: 'SB', color: 'f59e0b' },
+  { name: 'Maria Santos', role: 'QA Engineer', status: 'offline', avatar: 'MS', color: '8b5cf6' },
+  { name: 'James Wilson', role: 'DevOps', status: 'online', avatar: 'JW', color: 'ef4444' }
+];
+
+// Current user data (placeholder for future authentication)
+let currentUser = {
+  name: 'Current User',
+  status: 'online',
+  avatar: 'ME',
+  color: '3b82f6'
+};
+
+// Load member status from localStorage (placeholder)
+function loadMemberStatus() {
+  const stored = localStorage.getItem('shiagari_member_status');
+  if (stored) {
+    const statusMap = JSON.parse(stored);
+    teamMembers.forEach(member => {
+      if (statusMap[member.name]) {
+        member.status = statusMap[member.name];
+      }
+    });
+  }
+  updateMemberListUI();
+}
+
+// Save member status (placeholder)
+function saveMemberStatus() {
+  const statusMap = {};
+  teamMembers.forEach(member => {
+    statusMap[member.name] = member.status;
+  });
+  localStorage.setItem('shiagari_member_status', JSON.stringify(statusMap));
+}
+
+// Update member list UI
+function updateMemberListUI() {
+  const membersList = document.getElementById('membersList');
+  if (!membersList) return;
+  
+  membersList.innerHTML = teamMembers.map(member => `
+    <div class="member" data-user="${member.name}" data-status="${member.status}">
+      <img src="https://ui-avatars.com/api/?background=${member.color}&color=fff&name=${member.avatar}" alt="${member.name}">
+      <div class="member-info">
+        <span class="member-name">${escapeHtml(member.name)}</span>
+        <span class="member-role">${escapeHtml(member.role)}</span>
+      </div>
+      <span class="status ${member.status}"></span>
+    </div>
+  `).join('');
+  
+  // Update member count
+  const memberCount = document.getElementById('memberCount');
+  if (memberCount) memberCount.textContent = teamMembers.length;
+  
+  // Attach click handlers for members (placeholder - future DM feature)
+  document.querySelectorAll('.member').forEach(member => {
+    member.addEventListener('click', () => {
+      const userName = member.getAttribute('data-user');
+      showToast(`@${userName} - Direct message coming soon!`, 'info');
+    });
+  });
+}
+
+// Update account info (placeholder for future auth)
+function updateAccountUI() {
+  const accountAvatar = document.querySelector('.account-avatar');
+  const accountName = document.querySelector('.account-name');
+  const accountStatus = document.querySelector('.account-status');
+  
+  if (accountAvatar) {
+    accountAvatar.src = `https://ui-avatars.com/api/?background=${currentUser.color}&color=fff&name=${currentUser.avatar}&bold=true`;
+  }
+  if (accountName) accountName.textContent = currentUser.name;
+  if (accountStatus) {
+    accountStatus.textContent = currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1);
+    accountStatus.style.color = currentUser.status === 'online' ? '#10b981' : currentUser.status === 'away' ? '#f59e0b' : '#6b7280';
+  }
+}
+
+// Settings button (placeholder for future user settings)
+function initAccountButtons() {
+  const settingsBtn = document.getElementById('settingsBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      showToast('User settings coming soon! (Future: PHP authentication)', 'info');
+    });
+  }
+  
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      showToast('Logout functionality coming soon with PHP backend!', 'info');
+    });
+  }
+}
+
+// Escape HTML helper (if not already defined)
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// Initialize member list and account
+function initSidebarFeatures() {
+  loadMemberStatus();
+  updateAccountUI();
+  initAccountButtons();
+}
+
+// Call this after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSidebarFeatures);
+} else {
+  initSidebarFeatures();
+}
