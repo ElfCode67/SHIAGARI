@@ -1,34 +1,29 @@
 <?php
 require_once 'config/database.php';
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in'])) {
     header('Location: index.php');
     exit;
 }
-
-// Update user status to online
-$stmt = $pdo->prepare("UPDATE users SET status = 'online', last_active = NOW() WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHIAGARI · Dashboard</title>
+    <title>Loading SHIAGARI...</title>
+    <meta http-equiv="refresh" content="1;url=landing/landing.html">
     <style>
         body {
             margin: 0;
             padding: 0;
             background: #0b1626;
-            font-family: 'Inter', system-ui, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            font-family: 'Inter', sans-serif;
         }
-        .loading-container {
+        .loader {
             text-align: center;
         }
         .spinner {
@@ -40,29 +35,15 @@ $stmt->execute([$_SESSION['user_id']]);
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .loading-text {
-            color: #94a3b8;
-            font-size: 14px;
-        }
-        .user-info {
-            margin-top: 20px;
-            color: #e2e8f0;
-            font-size: 12px;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .text { color: #94a3b8; font-size: 14px; }
     </style>
-    <meta http-equiv="refresh" content="2;url=landing/landing.html">
 </head>
 <body>
-    <div class="loading-container">
+    <div class="loader">
         <div class="spinner"></div>
-        <div class="loading-text">Welcome back, <?php echo htmlspecialchars($_SESSION['full_name']); ?>!</div>
-        <div class="loading-text">Redirecting to SHIAGARI dashboard...</div>
-        <div class="user-info">
-            <i class="fas fa-user"></i> Logged in as @<?php echo htmlspecialchars($_SESSION['username']); ?>
-        </div>
+        <div class="text">Welcome back, <?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?>!</div>
+        <div class="text">Loading SHIAGARI...</div>
     </div>
 </body>
 </html>

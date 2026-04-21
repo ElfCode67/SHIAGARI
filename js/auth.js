@@ -1,3 +1,19 @@
+// Add to the top of each JS file (landing.js, idea.js, etc.)
+async function checkAuth() {
+    try {
+        const response = await fetch('../auth/check_session.php');
+        const data = await response.json();
+        
+        if (!data.logged_in) {
+            window.location.href = '../index.php';
+        }
+    } catch (error) {
+        window.location.href = '../index.php';
+    }
+}
+
+// Call this when page loads
+checkAuth();
 // SHIAGARI - Authentication JavaScript
 
 // Toggle between login and signup forms

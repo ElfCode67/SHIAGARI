@@ -1,6 +1,6 @@
 <?php
 // Database configuration
-$host = 'localhost';
+$host = 'localhost:3307';
 $dbname = 'shiagari_db';
 $username = 'root';
 $password = '';
