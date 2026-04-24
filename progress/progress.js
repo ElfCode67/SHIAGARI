@@ -1,683 +1,581 @@
-// SHIAGARI - Progress Tracker (KISS, DRY, YAGNI compliant)
+// SHIAGARI - Progress Tracker (PHP + MySQL Version)
 
-// ==================== DATA MODEL ====================
-let projectsData = {
-  project1: {
-    name: 'Dashboard Redesign',
-    tasks: [
-      { id: 't1', name: 'Wireframing', category: 'uiux', status: 'finished', progress: 100 },
-      { id: 't2', name: 'High-fidelity Mockups', category: 'uiux', status: 'finished', progress: 100 },
-      { id: 't3', name: 'Component Library', category: 'frontend', status: 'inprogress', progress: 65 },
-      { id: 't4', name: 'API Integration', category: 'backend', status: 'inprogress', progress: 40 },
-      { id: 't5', name: 'User Testing', category: 'uiux', status: 'notstarted', progress: 0 },
-      { id: 't6', name: 'Deployment Setup', category: 'backend', status: 'notstarted', progress: 0 }
-    ]
-  },
-  project2: {
-    name: 'Mobile App Launch',
-    tasks: [
-      { id: 't7', name: 'App Icon Design', category: 'uiux', status: 'finished', progress: 100 },
-      { id: 't8', name: 'Splash Screen', category: 'frontend', status: 'finished', progress: 100 },
-      { id: 't9', name: 'Push Notifications', category: 'backend', status: 'inprogress', progress: 75 },
-      { id: 't10', name: 'App Store Assets', category: 'uiux', status: 'notstarted', progress: 0 }
-    ]
-  },
-  project3: {
-    name: 'API Integration',
-    tasks: [
-      { id: 't11', name: 'REST API Design', category: 'backend', status: 'finished', progress: 100 },
-      { id: 't12', name: 'Authentication', category: 'backend', status: 'finished', progress: 100 },
-      { id: 't13', name: 'Rate Limiting', category: 'backend', status: 'inprogress', progress: 50 },
-      { id: 't14', name: 'Documentation', category: 'frontend', status: 'notstarted', progress: 0 }
-    ]
-  }
+let currentProjectId = 'project1';
+let tasks = [];
+
+// Project names mapping
+const projectNames = {
+    project1: 'Dashboard Redesign',
+    project2: 'Mobile App Launch',
+    project3: 'API Integration'
 };
 
 const STATUS_ORDER = ['notstarted', 'inprogress', 'finished'];
 const STATUS_LABELS = {
-  notstarted: '📋 NOT STARTED',
-  inprogress: '🔄 IN PROGRESS',
-  finished: '✅ FINISHED'
+    notstarted: '📋 NOT STARTED',
+    inprogress: '🔄 IN PROGRESS',
+    finished: '✅ FINISHED'
 };
 
 const CATEGORY_CONFIG = {
-  uiux: { name: 'UI/UX', color: '#ff2d75', class: 'uiux' },
-  frontend: { name: 'Frontend', color: '#3b82f6', class: 'frontend' },
-  backend: { name: 'Backend', color: '#ff3b30', class: 'backend' }
+    uiux: { name: 'UI/UX', color: '#ff2d75', class: 'uiux' },
+    frontend: { name: 'Frontend', color: '#3b82f6', class: 'frontend' },
+    backend: { name: 'Backend', color: '#ff3b30', class: 'backend' }
 };
 
-// ==================== UTILITIES ====================
-function generateId() {
-  return Date.now().toString() + '-' + Math.random().toString(36).substr(2, 6);
+// Check if user is logged in
+async function checkAuth() {
+    try {
+        const response = await fetch('../auth/check_session.php');
+        const data = await response.json();
+        
+        if (!data.logged_in) {
+            window.location.href = '../index.php';
+        }
+        return data.logged_in;
+    } catch (error) {
+        window.location.href = '../index.php';
+    }
 }
 
-function saveToLocalStorage() {
-  localStorage.setItem('shiagari_progress_data', JSON.stringify(projectsData));
+// Fetch tasks from database
+async function loadTasks() {
+    try {
+        const response = await fetch(`../api/tasks.php?project_id=${currentProjectId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            tasks = data.tasks;
+            renderCurrentProject();
+            updateStats();
+            updateChart();
+        } else if (data.message === 'Not logged in') {
+            window.location.href = '../index.php';
+        }
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+        showToast('Error loading tasks', 'error');
+    }
 }
 
-function loadFromLocalStorage() {
-  const stored = localStorage.getItem('shiagari_progress_data');
-  if (stored) {
-    projectsData = JSON.parse(stored);
-  } else {
-    saveToLocalStorage();
-  }
+// Add task to database
+async function addTask(name, category, status) {
+    if (!name || !name.trim()) {
+        showToast('Task name is required', 'error');
+        return false;
+    }
+    
+    try {
+        const response = await fetch('../api/tasks.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project_id: currentProjectId,
+                name: name.trim(),
+                category: category,
+                status: status,
+                progress: status === 'finished' ? 100 : 0
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await loadTasks();
+            showToast(`Task "${name}" added`, 'success');
+            return true;
+        } else {
+            showToast(data.message, 'error');
+            return false;
+        }
+    } catch (error) {
+        showToast('Error adding task', 'error');
+        return false;
+    }
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
+// Update task status (drag & drop)
+async function updateTaskStatus(taskId, newStatus) {
+    try {
+        const response = await fetch('../api/tasks.php', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: taskId,
+                status: newStatus,
+                progress: newStatus === 'finished' ? 100 : undefined
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await loadTasks();
+            showToast(`Task moved to ${STATUS_LABELS[newStatus]}`, 'success');
+            return true;
+        } else {
+            showToast(data.message, 'error');
+            return false;
+        }
+    } catch (error) {
+        showToast('Error updating task', 'error');
+        return false;
+    }
 }
 
-// ==================== CORE BUSINESS LOGIC ====================
-function getTasksByStatus(projectId, status) {
-  const project = projectsData[projectId];
-  if (!project) return [];
-  return project.tasks.filter(task => task.status === status);
+// Update task progress
+async function updateTaskProgress(taskId, newProgress) {
+    try {
+        const response = await fetch('../api/tasks.php', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: taskId,
+                progress: newProgress
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await loadTasks();
+            showToast(`Progress updated to ${newProgress}%`, 'info');
+            return true;
+        } else {
+            showToast(data.message, 'error');
+            return false;
+        }
+    } catch (error) {
+        showToast('Error updating progress', 'error');
+        return false;
+    }
+}
+
+// Delete task from database
+async function deleteTask(taskId) {
+    const task = tasks.find(t => t.id == taskId);
+    if (!task) return;
+    
+    if (confirm(`Delete "${task.name}"?`)) {
+        try {
+            const response = await fetch(`../api/tasks.php?id=${taskId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                await loadTasks();
+                showToast(`Task deleted`, 'info');
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast('Error deleting task', 'error');
+        }
+    }
+}
+
+// Helper functions
+function getTasksByStatus(status) {
+    return tasks.filter(task => task.status === status);
 }
 
 function findTaskById(taskId) {
-  for (let projectId in projectsData) {
-    const task = projectsData[projectId].tasks.find(t => t.id === taskId);
-    if (task) return task;
-  }
-  return null;
+    return tasks.find(t => t.id == taskId);
 }
 
-function updateTaskStatus(taskId, newStatus) {
-  for (let projectId in projectsData) {
-    const task = projectsData[projectId].tasks.find(t => t.id === taskId);
-    if (task) {
-      task.status = newStatus;
-      task.progress = newStatus === 'finished' ? 100 : task.progress;
-      saveToLocalStorage();
-      renderCurrentProject();
-      showToast(`Task moved to ${STATUS_LABELS[newStatus]}`, 'success');
-      return true;
+// Statistics
+function calculateOverallProgress() {
+    if (tasks.length === 0) return 0;
+    const totalProgress = tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
+    return Math.round(totalProgress / tasks.length);
+}
+
+function calculateCategoryProgress() {
+    const categories = { uiux: { total: 0, done: 0 }, frontend: { total: 0, done: 0 }, backend: { total: 0, done: 0 } };
+    
+    tasks.forEach(task => {
+        if (categories[task.category]) {
+            categories[task.category].total += 100;
+            categories[task.category].done += task.progress || 0;
+        }
+    });
+    
+    const result = {};
+    for (let cat in categories) {
+        const total = categories[cat].total;
+        result[cat] = total > 0 ? Math.round((categories[cat].done / total) * 100) : 0;
     }
-  }
-  return false;
+    return result;
 }
 
-function updateTaskProgress(taskId, newProgress) {
-  for (let projectId in projectsData) {
-    const task = projectsData[projectId].tasks.find(t => t.id === taskId);
-    if (task) {
-      task.progress = Math.min(100, Math.max(0, newProgress));
-      if (task.progress === 100 && task.status !== 'finished') {
-        task.status = 'finished';
-      } else if (task.progress > 0 && task.progress < 100 && task.status === 'notstarted') {
-        task.status = 'inprogress';
-      }
-      saveToLocalStorage();
-      renderCurrentProject();
-      showToast(`Progress updated to ${task.progress}%`, 'info');
-      return true;
+function updateStats() {
+    const overallProgress = calculateOverallProgress();
+    const statsSpan = document.getElementById('overallProgress');
+    if (statsSpan) statsSpan.textContent = overallProgress;
+}
+
+function updateChart() {
+    const categoryProgress = calculateCategoryProgress();
+    const uiux = categoryProgress.uiux || 0;
+    const frontend = categoryProgress.frontend || 0;
+    const backend = categoryProgress.backend || 0;
+    
+    const total = uiux + frontend + backend;
+    if (total === 0) {
+        const chartCircle = document.getElementById('chartCircle');
+        if (chartCircle) chartCircle.style.background = '#2d3f5f';
+        return;
     }
-  }
-  return false;
-}
-
-function addTask(projectId, taskName, category, status) {
-  if (!taskName || taskName.trim() === '') {
-    showToast('Task name is required', 'error');
-    return false;
-  }
-  
-  const newTask = {
-    id: generateId(),
-    name: taskName.trim(),
-    category: category,
-    status: status,
-    progress: status === 'finished' ? 100 : 0
-  };
-  
-  projectsData[projectId].tasks.push(newTask);
-  saveToLocalStorage();
-  renderCurrentProject();
-  showToast(`Task "${newTask.name}" added`, 'success');
-  return true;
-}
-
-function deleteTask(taskId) {
-  for (let projectId in projectsData) {
-    const index = projectsData[projectId].tasks.findIndex(t => t.id === taskId);
-    if (index !== -1) {
-      const taskName = projectsData[projectId].tasks[index].name;
-      if (confirm(`Delete "${taskName}"?`)) {
-        projectsData[projectId].tasks.splice(index, 1);
-        saveToLocalStorage();
-        renderCurrentProject();
-        showToast(`Task deleted`, 'info');
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-// ==================== STATISTICS & CHARTS ====================
-function calculateOverallProgress(projectId) {
-  const tasks = projectsData[projectId].tasks;
-  if (tasks.length === 0) return 0;
-  const totalProgress = tasks.reduce((sum, task) => sum + task.progress, 0);
-  return Math.round(totalProgress / tasks.length);
-}
-
-function calculateCategoryProgress(projectId) {
-  const categories = { uiux: { total: 0, done: 0 }, frontend: { total: 0, done: 0 }, backend: { total: 0, done: 0 } };
-  
-  projectsData[projectId].tasks.forEach(task => {
-    if (categories[task.category]) {
-      categories[task.category].total += 100;
-      categories[task.category].done += task.progress;
-    }
-  });
-  
-  const result = {};
-  for (let cat in categories) {
-    const total = categories[cat].total;
-    result[cat] = total > 0 ? Math.round((categories[cat].done / total) * 100) : 0;
-  }
-  return result;
-}
-
-function updateChart(projectId) {
-  const categoryProgress = calculateCategoryProgress(projectId);
-  const uiux = categoryProgress.uiux || 0;
-  const frontend = categoryProgress.frontend || 0;
-  const backend = categoryProgress.backend || 0;
-  
-  const total = uiux + frontend + backend;
-  if (total === 0) {
+    
+    let uiuxEnd = (uiux / total) * 100;
+    let frontendEnd = uiuxEnd + (frontend / total) * 100;
+    
+    const gradient = `conic-gradient(
+        #ff2d75 0% ${uiuxEnd}%,
+        #3b82f6 ${uiuxEnd}% ${frontendEnd}%,
+        #ff3b30 ${frontendEnd}% 100%
+    )`;
+    
     const chartCircle = document.getElementById('chartCircle');
-    if (chartCircle) chartCircle.style.background = '#2d3f5f';
-    return;
-  }
-  
-  let uiuxEnd = (uiux / total) * 100;
-  let frontendEnd = uiuxEnd + (frontend / total) * 100;
-  
-  const gradient = `conic-gradient(
-    #ff2d75 0% ${uiuxEnd}%,
-    #3b82f6 ${uiuxEnd}% ${frontendEnd}%,
-    #ff3b30 ${frontendEnd}% 100%
-  )`;
-  
-  const chartCircle = document.getElementById('chartCircle');
-  if (chartCircle) chartCircle.style.background = gradient;
-  
-  const legendUIUX = document.getElementById('legendUIUX');
-  const legendFrontend = document.getElementById('legendFrontend');
-  const legendBackend = document.getElementById('legendBackend');
-  
-  if (legendUIUX) legendUIUX.textContent = `${uiux}%`;
-  if (legendFrontend) legendFrontend.textContent = `${frontend}%`;
-  if (legendBackend) legendBackend.textContent = `${backend}%`;
+    if (chartCircle) chartCircle.style.background = gradient;
+    
+    const legendUIUX = document.getElementById('legendUIUX');
+    const legendFrontend = document.getElementById('legendFrontend');
+    const legendBackend = document.getElementById('legendBackend');
+    
+    if (legendUIUX) legendUIUX.textContent = `${uiux}%`;
+    if (legendFrontend) legendFrontend.textContent = `${frontend}%`;
+    if (legendBackend) legendBackend.textContent = `${backend}%`;
 }
 
-// ==================== DRAG & DROP ====================
+// Drag and drop
 let draggedTaskId = null;
 
 function attachDragAndDrop() {
-  const tasks = document.querySelectorAll('.task[draggable="true"]');
-  const columns = document.querySelectorAll('.column');
-  
-  tasks.forEach(task => {
-    task.setAttribute('draggable', 'true');
-    task.addEventListener('dragstart', handleDragStart);
-    task.addEventListener('dragend', handleDragEnd);
-  });
-  
-  columns.forEach(column => {
-    column.addEventListener('dragover', handleDragOver);
-    column.addEventListener('dragleave', handleDragLeave);
-    column.addEventListener('drop', handleDrop);
-  });
+    const tasks = document.querySelectorAll('.task[draggable="true"]');
+    const columns = document.querySelectorAll('.column');
+    
+    tasks.forEach(task => {
+        task.setAttribute('draggable', 'true');
+        task.addEventListener('dragstart', handleDragStart);
+        task.addEventListener('dragend', handleDragEnd);
+    });
+    
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('dragleave', handleDragLeave);
+        column.addEventListener('drop', handleDrop);
+    });
 }
 
 function handleDragStart(e) {
-  draggedTaskId = this.getAttribute('data-task-id');
-  this.style.opacity = '0.5';
-  e.dataTransfer.effectAllowed = 'move';
+    draggedTaskId = this.getAttribute('data-task-id');
+    this.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
 }
 
 function handleDragEnd(e) {
-  this.style.opacity = '';
-  draggedTaskId = null;
-  document.querySelectorAll('.column').forEach(col => {
-    col.style.borderColor = '';
-  });
+    this.style.opacity = '';
+    draggedTaskId = null;
+    document.querySelectorAll('.column').forEach(col => {
+        col.style.borderColor = '';
+    });
 }
 
 function handleDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  this.style.borderColor = '#3b82f6';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.style.borderColor = '#3b82f6';
 }
 
 function handleDragLeave(e) {
-  this.style.borderColor = '';
+    this.style.borderColor = '';
 }
 
-function handleDrop(e) {
-  e.preventDefault();
-  this.style.borderColor = '';
-  const targetColumn = this.closest('.column');
-  if (!targetColumn || !draggedTaskId) return;
-  
-  const newStatus = targetColumn.getAttribute('data-status');
-  if (newStatus) {
-    updateTaskStatus(draggedTaskId, newStatus);
-  }
-}
-
-// ==================== RENDER UI ====================
-let currentProjectId = 'project1';
-
-function renderCurrentProject() {
-  renderColumns(currentProjectId);
-  updateStats(currentProjectId);
-  updateChart(currentProjectId);
-}
-
-function renderColumns(projectId) {
-  const container = document.getElementById('trackerContainer');
-  if (!container) return;
-  
-  let columnsHtml = '';
-  
-  STATUS_ORDER.forEach(status => {
-    const tasks = getTasksByStatus(projectId, status);
-    const statusLabel = STATUS_LABELS[status];
-    const icon = status === 'notstarted' ? 'fa-clock' : (status === 'inprogress' ? 'fa-spinner fa-pulse' : 'fa-check-circle');
+async function handleDrop(e) {
+    e.preventDefault();
+    this.style.borderColor = '';
+    const targetColumn = this.closest('.column');
+    if (!targetColumn || !draggedTaskId) return;
     
-    columnsHtml += `
-      <div class="column" data-status="${status}">
-        <div class="column-header">
-          <h3><i class="fas ${icon}"></i> ${statusLabel}</h3>
-          <span class="task-count">${tasks.length}</span>
-        </div>
-        <div class="tasks-container" data-status="${status}">
-    `;
-    
-    if (tasks.length === 0) {
-      columnsHtml += `
-        <div class="empty-column">
-          <i class="fas fa-inbox"></i>
-          <p>No tasks</p>
-        </div>
-      `;
-    } else {
-      tasks.forEach(task => {
-        const category = CATEGORY_CONFIG[task.category] || CATEGORY_CONFIG.uiux;
-        columnsHtml += `
-          <div class="task" data-task-id="${task.id}" draggable="true">
-            <div class="task-header">
-              <span class="task-name">${escapeHtml(task.name)}</span>
-              <span class="task-category category-${category.class}">${category.name}</span>
-            </div>
-            <div class="progress-bar-container">
-              <div class="progress-label">
-                <span>Progress</span>
-                <span>${task.progress}%</span>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill ${task.progress === 100 ? 'full' : ''}" style="width: ${task.progress}%"></div>
-              </div>
-            </div>
-            <div class="task-actions">
-              <button class="task-action-btn increment-progress" data-id="${task.id}">
-                <i class="fas fa-plus-circle"></i> +10%
-              </button>
-              <button class="task-action-btn decrement-progress" data-id="${task.id}">
-                <i class="fas fa-minus-circle"></i> -10%
-              </button>
-              <button class="task-action-btn delete-task" data-id="${task.id}">
-                <i class="fas fa-trash-alt"></i> Delete
-              </button>
-            </div>
-          </div>
-        `;
-      });
+    const newStatus = targetColumn.getAttribute('data-status');
+    if (newStatus) {
+        await updateTaskStatus(draggedTaskId, newStatus);
     }
-    
-    columnsHtml += `
-        </div>
-        <button class="add-task-btn" data-status="${status}">
-          <i class="fas fa-plus"></i> Add Task
-        </button>
-      </div>
-    `;
-  });
-  
-  columnsHtml += `
-    <div class="chart-section">
-      <div class="chart-title">
-        <i class="fas fa-chart-pie"></i> Category Distribution
-      </div>
-      <div class="chart-circle" id="chartCircle"></div>
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-left">
-            <div class="legend-color uiux"></div>
-            <span>UI/UX</span>
-          </div>
-          <span class="legend-value" id="legendUIUX">0%</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-left">
-            <div class="legend-color frontend"></div>
-            <span>Frontend</span>
-          </div>
-          <span class="legend-value" id="legendFrontend">0%</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-left">
-            <div class="legend-color backend"></div>
-            <span>Backend</span>
-          </div>
-          <span class="legend-value" id="legendBackend">0%</span>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  container.innerHTML = columnsHtml;
-  attachTaskEventListeners();
-  attachDragAndDrop();
 }
 
-function updateStats(projectId) {
-  const overallProgress = calculateOverallProgress(projectId);
-  const statsSpan = document.getElementById('overallProgress');
-  if (statsSpan) statsSpan.textContent = overallProgress;
+// Render functions
+function renderCurrentProject() {
+    renderColumns();
+    updateStats();
+    updateChart();
+}
+
+function renderColumns() {
+    const container = document.getElementById('trackerContainer');
+    if (!container) return;
+    
+    let columnsHtml = '';
+    
+    STATUS_ORDER.forEach(status => {
+        const tasksInStatus = getTasksByStatus(status);
+        const statusLabel = STATUS_LABELS[status];
+        const icon = status === 'notstarted' ? 'fa-clock' : (status === 'inprogress' ? 'fa-spinner fa-pulse' : 'fa-check-circle');
+        
+        columnsHtml += `
+            <div class="column" data-status="${status}">
+                <div class="column-header">
+                    <h3><i class="fas ${icon}"></i> ${statusLabel}</h3>
+                    <span class="task-count">${tasksInStatus.length}</span>
+                </div>
+                <div class="tasks-container" data-status="${status}">
+        `;
+        
+        if (tasksInStatus.length === 0) {
+            columnsHtml += `
+                <div class="empty-column">
+                    <i class="fas fa-inbox"></i>
+                    <p>No tasks</p>
+                </div>
+            `;
+        } else {
+            tasksInStatus.forEach(task => {
+                const category = CATEGORY_CONFIG[task.category] || CATEGORY_CONFIG.frontend;
+                columnsHtml += `
+                    <div class="task" data-task-id="${task.id}" draggable="true">
+                        <div class="task-header">
+                            <span class="task-name">${escapeHtml(task.name)}</span>
+                            <span class="task-category category-${category.class}">${category.name}</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-label">
+                                <span>Progress</span>
+                                <span>${task.progress || 0}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${(task.progress || 0) === 100 ? 'full' : ''}" style="width: ${task.progress || 0}%"></div>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="task-action-btn increment-progress" data-id="${task.id}">
+                                <i class="fas fa-plus-circle"></i> +10%
+                            </button>
+                            <button class="task-action-btn decrement-progress" data-id="${task.id}">
+                                <i class="fas fa-minus-circle"></i> -10%
+                            </button>
+                            <button class="task-action-btn delete-task" data-id="${task.id}">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        columnsHtml += `
+                </div>
+                <button class="add-task-btn" data-status="${status}">
+                    <i class="fas fa-plus"></i> Add Task
+                </button>
+            </div>
+        `;
+    });
+    
+    columnsHtml += `
+        <div class="chart-section">
+            <div class="chart-title">
+                <i class="fas fa-chart-pie"></i> Category Distribution
+            </div>
+            <div class="chart-circle" id="chartCircle"></div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-left">
+                        <div class="legend-color uiux"></div>
+                        <span>UI/UX</span>
+                    </div>
+                    <span class="legend-value" id="legendUIUX">0%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-left">
+                        <div class="legend-color frontend"></div>
+                        <span>Frontend</span>
+                    </div>
+                    <span class="legend-value" id="legendFrontend">0%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-left">
+                        <div class="legend-color backend"></div>
+                        <span>Backend</span>
+                    </div>
+                    <span class="legend-value" id="legendBackend">0%</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = columnsHtml;
+    attachTaskEventListeners();
+    attachDragAndDrop();
 }
 
 function attachTaskEventListeners() {
-  document.querySelectorAll('.increment-progress').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const taskId = btn.getAttribute('data-id');
-      const task = findTaskById(taskId);
-      if (task) updateTaskProgress(taskId, Math.min(100, task.progress + 10));
+    document.querySelectorAll('.increment-progress').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const taskId = btn.getAttribute('data-id');
+            const task = findTaskById(taskId);
+            if (task) {
+                const newProgress = Math.min(100, (task.progress || 0) + 10);
+                await updateTaskProgress(taskId, newProgress);
+            }
+        });
     });
-  });
-  
-  document.querySelectorAll('.decrement-progress').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const taskId = btn.getAttribute('data-id');
-      const task = findTaskById(taskId);
-      if (task) updateTaskProgress(taskId, Math.max(0, task.progress - 10));
+    
+    document.querySelectorAll('.decrement-progress').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const taskId = btn.getAttribute('data-id');
+            const task = findTaskById(taskId);
+            if (task) {
+                const newProgress = Math.max(0, (task.progress || 0) - 10);
+                await updateTaskProgress(taskId, newProgress);
+            }
+        });
     });
-  });
-  
-  document.querySelectorAll('.delete-task').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const taskId = btn.getAttribute('data-id');
-      deleteTask(taskId);
+    
+    document.querySelectorAll('.delete-task').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const taskId = btn.getAttribute('data-id');
+            await deleteTask(taskId);
+        });
     });
-  });
-  
-  document.querySelectorAll('.add-task-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const status = btn.getAttribute('data-status');
-      openAddTaskModal(status);
+    
+    document.querySelectorAll('.add-task-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const status = btn.getAttribute('data-status');
+            openAddTaskModal(status);
+        });
     });
-  });
 }
 
-// ==================== MODAL ====================
+// Modal functions
 let currentModalStatus = null;
 
 function openAddTaskModal(status) {
-  currentModalStatus = status;
-  const modal = document.getElementById('taskModal');
-  const modalTitle = modal.querySelector('h3');
-  modalTitle.innerHTML = `<i class="fas fa-plus-circle"></i> Add Task to ${STATUS_LABELS[status]}`;
-  document.getElementById('taskName').value = '';
-  document.getElementById('taskCategory').value = 'uiux';
-  document.getElementById('taskColumn').value = status;
-  modal.style.display = 'flex';
-  setTimeout(() => document.getElementById('taskName').focus(), 100);
+    currentModalStatus = status;
+    const modal = document.getElementById('taskModal');
+    const modalTitle = modal.querySelector('h3');
+    modalTitle.innerHTML = `<i class="fas fa-plus-circle"></i> Add Task to ${STATUS_LABELS[status]}`;
+    document.getElementById('taskName').value = '';
+    document.getElementById('taskCategory').value = 'frontend';
+    document.getElementById('taskColumn').value = status;
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('taskName').focus(), 100);
 }
 
 function closeModal() {
-  document.getElementById('taskModal').style.display = 'none';
-  currentModalStatus = null;
+    document.getElementById('taskModal').style.display = 'none';
+    currentModalStatus = null;
 }
 
-function handleSaveTask() {
-  const taskName = document.getElementById('taskName').value.trim();
-  const category = document.getElementById('taskCategory').value;
-  const status = document.getElementById('taskColumn').value;
-  
-  if (!taskName) {
-    showToast('Please enter a task name', 'error');
-    return;
-  }
-  
-  addTask(currentProjectId, taskName, category, status);
-  closeModal();
+async function handleSaveTask() {
+    const taskName = document.getElementById('taskName').value.trim();
+    const category = document.getElementById('taskCategory').value;
+    const status = document.getElementById('taskColumn').value;
+    
+    if (!taskName) {
+        showToast('Please enter a task name', 'error');
+        return;
+    }
+    
+    await addTask(taskName, category, status);
+    closeModal();
 }
 
-// ==================== TOAST ====================
+// Project selector
+function initProjectSelector() {
+    const select = document.getElementById('projectSelect');
+    if (!select) return;
+    
+    select.addEventListener('change', async (e) => {
+        currentProjectId = e.target.value;
+        await loadTasks();
+    });
+}
+
+// Toast notification
 let toastTimeout = null;
 
 function showToast(message, type = 'success') {
-  const toast = document.getElementById('toastMsg');
-  const toastText = document.getElementById('toastText');
-  const iconElem = toast.querySelector('i');
-  
-  toastText.textContent = message;
-  if (type === 'success') {
-    iconElem.className = 'fas fa-check-circle';
-    iconElem.style.color = '#10b981';
-  } else if (type === 'error') {
-    iconElem.className = 'fas fa-exclamation-triangle';
-    iconElem.style.color = '#f97316';
-  } else {
-    iconElem.className = 'fas fa-info-circle';
-    iconElem.style.color = '#3b82f6';
-  }
-  
-  toast.classList.add('show');
-  if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2500);
-}
-
-// ==================== PROJECT SELECTOR ====================
-function initProjectSelector() {
-  const select = document.getElementById('projectSelect');
-  if (!select) return;
-  
-  // Populate project names in dropdown
-  for (let projectId in projectsData) {
-    const option = select.querySelector(`option[value="${projectId}"]`);
-    if (option) {
-      option.textContent = `${projectsData[projectId].name}`;
+    const toast = document.getElementById('toastMsg');
+    const toastText = document.getElementById('toastText');
+    const iconElem = toast.querySelector('i');
+    
+    toastText.textContent = message;
+    if (type === 'error') {
+        iconElem.className = 'fas fa-exclamation-triangle';
+        iconElem.style.color = '#f97316';
+    } else if (type === 'info') {
+        iconElem.className = 'fas fa-info-circle';
+        iconElem.style.color = '#3b82f6';
+    } else {
+        iconElem.className = 'fas fa-check-circle';
+        iconElem.style.color = '#10b981';
     }
-  }
-  
-  select.addEventListener('change', (e) => {
-    currentProjectId = e.target.value;
-    renderCurrentProject();
-  });
+    
+    toast.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2500);
 }
 
-// ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', () => {
-  loadFromLocalStorage();
-  initProjectSelector();
-  renderCurrentProject();
-  
-  const closeBtn = document.getElementById('closeModalBtn');
-  const cancelBtn = document.getElementById('cancelModalBtn');
-  const saveBtn = document.getElementById('saveTaskBtn');
-  const modal = document.getElementById('taskModal');
-  
-  if (closeBtn) closeBtn.addEventListener('click', closeModal);
-  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-  if (saveBtn) saveBtn.addEventListener('click', handleSaveTask);
-  
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-  }
-  
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
-      closeModal();
-    }
-  });
-  
-  // Roadmap placeholder
-  const navRoadmap = document.getElementById('navRoadmap');
-  if (navRoadmap) {
-    navRoadmap.addEventListener('click', (e) => {
-      e.preventDefault();
-      showToast('Roadmap planner coming soon!', 'info');
-    });
-  }
-});
-
-// ==================== MEMBER LIST & ACCOUNT FUNCTIONALITY ====================
-
-// Team members data (placeholder for future database)
-const teamMembers = [
-  { name: 'Vince Villar', role: 'Lead Developer', status: 'online', avatar: 'VV', color: '3b82f6' },
-  { name: 'Ayelet De Castro', role: 'UI/UX Designer', status: 'online', avatar: 'AD', color: '10b981' },
-  { name: 'Sean Arkin Balmes', role: 'Project Manager', status: 'away', avatar: 'SB', color: 'f59e0b' },
-  { name: 'Maria Santos', role: 'QA Engineer', status: 'offline', avatar: 'MS', color: '8b5cf6' },
-  { name: 'James Wilson', role: 'DevOps', status: 'online', avatar: 'JW', color: 'ef4444' }
-];
-
-// Current user data (placeholder for future authentication)
-let currentUser = {
-  name: 'Current User',
-  status: 'online',
-  avatar: 'ME',
-  color: '3b82f6'
-};
-
-// Load member status from localStorage (placeholder)
-function loadMemberStatus() {
-  const stored = localStorage.getItem('shiagari_member_status');
-  if (stored) {
-    const statusMap = JSON.parse(stored);
-    teamMembers.forEach(member => {
-      if (statusMap[member.name]) {
-        member.status = statusMap[member.name];
-      }
-    });
-  }
-  updateMemberListUI();
-}
-
-// Save member status (placeholder)
-function saveMemberStatus() {
-  const statusMap = {};
-  teamMembers.forEach(member => {
-    statusMap[member.name] = member.status;
-  });
-  localStorage.setItem('shiagari_member_status', JSON.stringify(statusMap));
-}
-
-// Update member list UI
-function updateMemberListUI() {
-  const membersList = document.getElementById('membersList');
-  if (!membersList) return;
-  
-  membersList.innerHTML = teamMembers.map(member => `
-    <div class="member" data-user="${member.name}" data-status="${member.status}">
-      <img src="https://ui-avatars.com/api/?background=${member.color}&color=fff&name=${member.avatar}" alt="${member.name}">
-      <div class="member-info">
-        <span class="member-name">${escapeHtml(member.name)}</span>
-        <span class="member-role">${escapeHtml(member.role)}</span>
-      </div>
-      <span class="status ${member.status}"></span>
-    </div>
-  `).join('');
-  
-  // Update member count
-  const memberCount = document.getElementById('memberCount');
-  if (memberCount) memberCount.textContent = teamMembers.length;
-  
-  // Attach click handlers for members (placeholder - future DM feature)
-  document.querySelectorAll('.member').forEach(member => {
-    member.addEventListener('click', () => {
-      const userName = member.getAttribute('data-user');
-      showToast(`@${userName} - Direct message coming soon!`, 'info');
-    });
-  });
-}
-
-// Update account info (placeholder for future auth)
-function updateAccountUI() {
-  const accountAvatar = document.querySelector('.account-avatar');
-  const accountName = document.querySelector('.account-name');
-  const accountStatus = document.querySelector('.account-status');
-  
-  if (accountAvatar) {
-    accountAvatar.src = `https://ui-avatars.com/api/?background=${currentUser.color}&color=fff&name=${currentUser.avatar}&bold=true`;
-  }
-  if (accountName) accountName.textContent = currentUser.name;
-  if (accountStatus) {
-    accountStatus.textContent = currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1);
-    accountStatus.style.color = currentUser.status === 'online' ? '#10b981' : currentUser.status === 'away' ? '#f59e0b' : '#6b7280';
-  }
-}
-
-// Settings button (placeholder for future user settings)
-function initAccountButtons() {
-  const settingsBtn = document.getElementById('settingsBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-  
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', () => {
-      showToast('User settings coming soon! (Future: PHP authentication)', 'info');
-    });
-  }
-  
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      showToast('Logout functionality coming soon with PHP backend!', 'info');
-    });
-  }
-}
-
-// Escape HTML helper (if not already defined)
 function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
-// Initialize member list and account
-function initSidebarFeatures() {
-  loadMemberStatus();
-  updateAccountUI();
-  initAccountButtons();
-}
-
-// Call this after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSidebarFeatures);
-} else {
-  initSidebarFeatures();
-}
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
+    initProjectSelector();
+    await loadTasks();
+    
+    const closeBtn = document.getElementById('closeModalBtn');
+    const cancelBtn = document.getElementById('cancelModalBtn');
+    const saveBtn = document.getElementById('saveTaskBtn');
+    const modal = document.getElementById('taskModal');
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (saveBtn) saveBtn.addEventListener('click', handleSaveTask);
+    
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            closeModal();
+        }
+    });
+    
+    // Roadmap placeholder
+    const navRoadmap = document.getElementById('navRoadmap');
+    if (navRoadmap) {
+        navRoadmap.addEventListener('click', (e) => {
+            e.preventDefault();
+            showToast('Roadmap planner coming soon!', 'info');
+        });
+    }
+});
