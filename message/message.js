@@ -1,430 +1,434 @@
-// SHIAGARI - Chat Module
+// SHIAGARI - Chat Module (PHP + MySQL Version)
 
-// Chat data storage
-let conversations = {
-  'Vince Villar': {
-    avatar: 'VV',
-    messages: [
-      { text: 'Hello!', sender: 'vince', time: '10:30 AM' },
-      { text: 'Hi there! 👋', sender: 'me', time: '10:31 AM' },
-      { text: 'How is the project coming along?', sender: 'vince', time: '10:32 AM' },
-      { text: 'Going great! Just finished the dashboard.', sender: 'me', time: '10:33 AM' },
-      { text: 'Awesome! Can you share a preview?', sender: 'vince', time: '10:34 AM' }
-    ]
-  },
-  'Ayelet De Castro': {
-    avatar: 'AD',
-    messages: [
-      { text: 'Great work on the design!', sender: 'ayelet', time: '9:15 AM' },
-      { text: 'Thank you! Glad you like it.', sender: 'me', time: '9:16 AM' },
-      { text: 'When can we review the final version?', sender: 'ayelet', time: '9:17 AM' }
-    ]
-  }
-};
+let conversations = {};
+let currentUser = '';
+let currentUserId = null;
+let allUsers = [];
 
-let currentUser = 'Vince Villar';
-let isDragging = false;
-let dragOffsetX, dragOffsetY;
-
-// Load messages from localStorage
-function loadMessages() {
-  const stored = localStorage.getItem('shiagari_chat_messages');
-  if (stored) {
-    conversations = JSON.parse(stored);
-  } else {
-    saveMessages();
-  }
-}
-
-function saveMessages() {
-  localStorage.setItem('shiagari_chat_messages', JSON.stringify(conversations));
-}
-
-// Render current chat messages
-function renderMessages() {
-  const chatBody = document.getElementById('chatBody');
-  if (!chatBody) return;
-  
-  const messages = conversations[currentUser]?.messages || [];
-  
-  chatBody.innerHTML = messages.map(msg => {
-    const isMe = msg.sender === 'me';
-    const avatarInitial = isMe ? 'ME' : (conversations[currentUser]?.avatar || currentUser.charAt(0));
-    
-    return `
-      <div class="msg ${isMe ? 'right' : 'left'}">
-        ${!isMe ? `<div class="msg-avatar">${avatarInitial}</div>` : ''}
-        <div class="msg-content">
-          <div class="msg-text">${escapeHtml(msg.text)}</div>
-          <div class="msg-time">${msg.time}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-  
-  // Scroll to bottom
-  chatBody.scrollTop = chatBody.scrollHeight;
-}
-
-// Add a new message
-function addMessage(text) {
-  if (!text.trim()) return;
-  
-  const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
-  if (!conversations[currentUser]) {
-    conversations[currentUser] = { avatar: currentUser.charAt(0), messages: [] };
-  }
-  
-  conversations[currentUser].messages.push({
-    text: text.trim(),
-    sender: 'me',
-    time: time
-  });
-  
-  saveMessages();
-  renderMessages();
-  
-  // Simulate reply after 1 second (for demo)
-  setTimeout(() => simulateReply(), 1000);
-}
-
-// Simulate auto-reply
-function simulateReply() {
-  const replies = [
-    "That's interesting! Tell me more.",
-    "Thanks for sharing! 👍",
-    "I'll look into that.",
-    "Great job! Keep it up!",
-    "Let's discuss this in the next meeting.",
-    "I appreciate your hard work!"
-  ];
-  
-  const randomReply = replies[Math.floor(Math.random() * replies.length)];
-  const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
-  conversations[currentUser].messages.push({
-    text: randomReply,
-    sender: 'other',
-    time: time
-  });
-  
-  saveMessages();
-  renderMessages();
-  showToast(`New message from ${currentUser}`);
-}
-
-// Switch conversation
-function switchConversation(userName) {
-  currentUser = userName;
-  
-  // Update active state in chat list
-  document.querySelectorAll('.chat-user').forEach(el => {
-    el.classList.remove('active');
-    if (el.getAttribute('data-user') === userName) {
-      el.classList.add('active');
+// Check if user is logged in
+async function checkAuth() {
+    try {
+        const response = await fetch('../auth/check_session.php');
+        const data = await response.json();
+        
+        if (!data.logged_in) {
+            window.location.href = '../index.php';
+        }
+        currentUserId = data.user?.id;
+        return data.logged_in;
+    } catch (error) {
+        window.location.href = '../index.php';
     }
-  });
-  
-  // Update chat header
-  const avatarUrl = `https://ui-avatars.com/api/?background=${userName === 'Vince Villar' ? '3b82f6' : '10b981'}&color=fff&name=${userName.split(' ').map(n => n[0]).join('')}`;
-  document.getElementById('currentAvatar').src = avatarUrl;
-  document.getElementById('currentUserName').textContent = userName;
-  
-  renderMessages();
+}
+
+// Fetch all users for chat list
+async function loadUsers() {
+    try {
+        const response = await fetch('../api/messages.php?action=get_users');
+        const data = await response.json();
+        
+        if (data.success) {
+            allUsers = data.users;
+            renderChatList();
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+// Fetch messages for a specific user
+async function loadMessages(otherUserId, otherUserName) {
+    try {
+        const response = await fetch(`../api/messages.php?action=get_messages&other_user_id=${otherUserId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            if (!conversations[otherUserName]) {
+                conversations[otherUserName] = {
+                    id: otherUserId,
+                    messages: []
+                };
+            }
+            conversations[otherUserName].messages = data.messages;
+            renderMessages();
+        }
+    } catch (error) {
+        console.error('Error loading messages:', error);
+        showToast('Error loading messages', 'error');
+    }
+}
+
+// Send a message
+async function sendMessage(toUserId, message) {
+    if (!message.trim()) return false;
+    
+    try {
+        const response = await fetch('../api/messages.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send',
+                to_user_id: toUserId,
+                message: message.trim()
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Reload messages for this conversation
+            await loadMessages(toUserId, currentUser);
+            showToast('Message sent', 'success');
+            return true;
+        } else {
+            showToast(data.message, 'error');
+            return false;
+        }
+    } catch (error) {
+        showToast('Error sending message', 'error');
+        return false;
+    }
+}
+
+// Mark messages as read
+async function markAsRead(otherUserId) {
+    try {
+        await fetch('../api/messages.php', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'mark_read',
+                other_user_id: otherUserId
+            })
+        });
+    } catch (error) {
+        console.error('Error marking messages as read:', error);
+    }
+}
+
+// Render chat list
+function renderChatList() {
+    const chatListContainer = document.querySelector('.chat-list');
+    if (!chatListContainer) return;
+    
+    // Keep the header
+    const header = chatListContainer.querySelector('.chat-list-header');
+    
+    let usersHtml = '';
+    allUsers.forEach(user => {
+        // Don't show current user in chat list
+        if (user.id == currentUserId) return;
+        
+        const avatarUrl = `https://ui-avatars.com/api/?background=${user.avatar_color || '3b82f6'}&color=fff&name=${user.username?.charAt(0) || 'U'}`;
+        const statusClass = user.status || 'offline';
+        const statusText = statusClass === 'online' ? '🟢 Online' : (statusClass === 'away' ? '🟡 Away' : '⚫ Offline');
+        
+        usersHtml += `
+            <div class="chat-user" data-user-id="${user.id}" data-user-name="${user.full_name || user.username}">
+                <img src="${avatarUrl}" alt="${user.full_name || user.username}">
+                <div class="chat-user-info">
+                    <span class="chat-user-name">${escapeHtml(user.full_name || user.username)}</span>
+                    <span class="chat-user-preview">${statusText}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Update the chat list (keep header, replace users)
+    const existingUsers = chatListContainer.querySelectorAll('.chat-user');
+    existingUsers.forEach(el => el.remove());
+    chatListContainer.insertAdjacentHTML('beforeend', usersHtml);
+    
+    // Attach click handlers
+    document.querySelectorAll('.chat-user').forEach(user => {
+        user.addEventListener('click', async () => {
+            const userId = user.getAttribute('data-user-id');
+            const userName = user.getAttribute('data-user-name');
+            
+            // Remove active class from all
+            document.querySelectorAll('.chat-user').forEach(u => u.classList.remove('active'));
+            user.classList.add('active');
+            
+            currentUser = userName;
+            await loadMessages(userId, userName);
+            await markAsRead(userId);
+            
+            // Update chat header
+            const avatarUrl = user.querySelector('img').src;
+            document.getElementById('currentAvatar').src = avatarUrl;
+            document.getElementById('currentUserName').textContent = userName;
+        });
+    });
+}
+
+// Render messages in chat window
+function renderMessages() {
+    const chatBody = document.getElementById('chatBody');
+    if (!chatBody) return;
+    
+    const messages = conversations[currentUser]?.messages || [];
+    
+    if (messages.length === 0) {
+        chatBody.innerHTML = `
+            <div class="empty-chat">
+                <i class="fas fa-comments"></i>
+                <p>No messages yet. Start a conversation!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    chatBody.innerHTML = messages.map(msg => {
+        const isMe = msg.sender_id == currentUserId;
+        const senderInitial = isMe ? 'ME' : (msg.sender_name?.charAt(0) || 'U');
+        
+        return `
+            <div class="msg ${isMe ? 'right' : 'left'}">
+                ${!isMe ? `<div class="msg-avatar">${escapeHtml(senderInitial)}</div>` : ''}
+                <div class="msg-content">
+                    <div class="msg-text">${escapeHtml(msg.message)}</div>
+                    <div class="msg-time">${formatTime(msg.created_at)}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Scroll to bottom
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Format time
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 3600000) {
+        const minutes = Math.floor(diff / 60000);
+        return `${minutes}m ago`;
+    } else if (diff < 86400000) {
+        const hours = Math.floor(diff / 3600000);
+        return `${hours}h ago`;
+    } else {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+}
+
+// Send message handler
+function initSendMessage() {
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
+    
+    if (sendBtn) {
+        sendBtn.addEventListener('click', async () => {
+            if (!currentUser) {
+                showToast('Select a user to chat with', 'error');
+                return;
+            }
+            
+            const otherUser = allUsers.find(u => (u.full_name || u.username) === currentUser);
+            if (otherUser) {
+                await sendMessage(otherUser.id, messageInput.value);
+                messageInput.value = '';
+                messageInput.focus();
+            }
+        });
+    }
+    
+    if (messageInput) {
+        messageInput.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                if (!currentUser) {
+                    showToast('Select a user to chat with', 'error');
+                    return;
+                }
+                
+                const otherUser = allUsers.find(u => (u.full_name || u.username) === currentUser);
+                if (otherUser) {
+                    await sendMessage(otherUser.id, messageInput.value);
+                    messageInput.value = '';
+                }
+            }
+        });
+    }
+}
+
+// Poll for new messages every 5 seconds
+let pollInterval = null;
+
+function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    
+    pollInterval = setInterval(async () => {
+        if (currentUser) {
+            const otherUser = allUsers.find(u => (u.full_name || u.username) === currentUser);
+            if (otherUser) {
+                await loadMessages(otherUser.id, currentUser);
+            }
+        }
+    }, 5000);
 }
 
 // Drag functionality
 const chatWindow = document.getElementById('chatWindow');
 const dragHandle = document.getElementById('dragHandle');
+let isDragging = false;
+let dragOffsetX, dragOffsetY;
 
 function initDrag() {
-  if (!chatWindow || !dragHandle) return;
-  
-  dragHandle.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.chat-header-actions')) return;
-    isDragging = true;
-    const rect = chatWindow.getBoundingClientRect();
-    dragOffsetX = e.clientX - rect.left;
-    dragOffsetY = e.clientY - rect.top;
-    chatWindow.style.position = 'fixed';
-    chatWindow.style.cursor = 'grabbing';
-  });
-  
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    let newLeft = e.clientX - dragOffsetX;
-    let newTop = e.clientY - dragOffsetY;
+    if (!chatWindow || !dragHandle) return;
     
-    // Keep within viewport bounds
-    newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - chatWindow.offsetWidth));
-    newTop = Math.max(0, Math.min(newTop, window.innerHeight - chatWindow.offsetHeight));
+    dragHandle.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.chat-header-actions')) return;
+        isDragging = true;
+        const rect = chatWindow.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+        chatWindow.style.position = 'fixed';
+        chatWindow.style.cursor = 'grabbing';
+    });
     
-    chatWindow.style.left = newLeft + 'px';
-    chatWindow.style.top = newTop + 'px';
-    chatWindow.style.right = 'auto';
-    chatWindow.style.bottom = 'auto';
-  });
-  
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
-    if (chatWindow) chatWindow.style.cursor = '';
-  });
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let newLeft = e.clientX - dragOffsetX;
+        let newTop = e.clientY - dragOffsetY;
+        
+        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - chatWindow.offsetWidth));
+        newTop = Math.max(0, Math.min(newTop, window.innerHeight - chatWindow.offsetHeight));
+        
+        chatWindow.style.left = newLeft + 'px';
+        chatWindow.style.top = newTop + 'px';
+        chatWindow.style.right = 'auto';
+        chatWindow.style.bottom = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        if (chatWindow) chatWindow.style.cursor = '';
+    });
 }
 
 // Minimize functionality
 function initMinimize() {
-  const minBtn = document.getElementById('minBtn');
-  if (minBtn) {
-    minBtn.addEventListener('click', () => {
-      chatWindow.classList.toggle('minimized');
-      const icon = minBtn.querySelector('i');
-      if (chatWindow.classList.contains('minimized')) {
-        icon.className = 'fas fa-window-maximize';
-      } else {
-        icon.className = 'fas fa-minus';
-      }
-    });
-  }
+    const minBtn = document.getElementById('minBtn');
+    if (minBtn) {
+        minBtn.addEventListener('click', () => {
+            chatWindow.classList.toggle('minimized');
+            const icon = minBtn.querySelector('i');
+            if (chatWindow.classList.contains('minimized')) {
+                icon.className = 'fas fa-window-maximize';
+            } else {
+                icon.className = 'fas fa-minus';
+            }
+        });
+    }
 }
 
-// Send message
-function initSendMessage() {
-  const sendBtn = document.getElementById('sendBtn');
-  const messageInput = document.getElementById('messageInput');
-  
-  if (sendBtn) {
-    sendBtn.addEventListener('click', () => {
-      addMessage(messageInput.value);
-      messageInput.value = '';
-      messageInput.focus();
-    });
-  }
-  
-  if (messageInput) {
-    messageInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        addMessage(messageInput.value);
-        messageInput.value = '';
-      }
-    });
-  }
+// Set initial position
+function setInitialPosition() {
+    if (chatWindow) {
+        chatWindow.style.position = 'fixed';
+        chatWindow.style.bottom = '20px';
+        chatWindow.style.right = '20px';
+        chatWindow.style.left = 'auto';
+        chatWindow.style.top = 'auto';
+    }
 }
 
 // Toast notification
 let toastTimeout = null;
 
-function showToast(message) {
-  // Create toast if doesn't exist
-  let toast = document.getElementById('chatToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'chatToast';
-    toast.className = 'toast';
-    toast.innerHTML = '<i class="fas fa-comment"></i><span id="chatToastText"></span>';
-    document.body.appendChild(toast);
+function showToast(message, type = 'success') {
+    let toast = document.getElementById('chatToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'chatToast';
+        toast.className = 'toast';
+        toast.innerHTML = '<i class="fas"></i><span id="chatToastText"></span>';
+        document.body.appendChild(toast);
+        
+        toast.style.position = 'fixed';
+        toast.style.bottom = '30px';
+        toast.style.right = '30px';
+        toast.style.background = '#1e293b';
+        toast.style.padding = '12px 20px';
+        toast.style.borderRadius = '40px';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '10px';
+        toast.style.fontSize = '14px';
+        toast.style.fontWeight = '500';
+        toast.style.borderLeft = '4px solid #10b981';
+        toast.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
+        toast.style.transform = 'translateX(400px)';
+        toast.style.transition = 'transform 0.3s ease';
+        toast.style.zIndex = '1100';
+    }
     
-    // Add styles for this specific toast
-    toast.style.position = 'fixed';
-    toast.style.bottom = '30px';
-    toast.style.right = '30px';
-    toast.style.background = '#1e293b';
-    toast.style.padding = '12px 20px';
-    toast.style.borderRadius = '40px';
-    toast.style.display = 'flex';
-    toast.style.alignItems = 'center';
-    toast.style.gap = '10px';
-    toast.style.fontSize = '14px';
-    toast.style.fontWeight = '500';
-    toast.style.borderLeft = '4px solid #3b82f6';
-    toast.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
-    toast.style.transform = 'translateX(400px)';
-    toast.style.transition = 'transform 0.3s ease';
-    toast.style.zIndex = '1100';
-  }
-  
-  const toastText = document.getElementById('chatToastText');
-  if (toastText) toastText.textContent = message;
-  
-  toast.classList.add('show');
-  toast.style.transform = 'translateX(0)';
-  
-  if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    toast.style.transform = 'translateX(400px)';
-  }, 2500);
+    const icon = toast.querySelector('i');
+    const toastText = document.getElementById('chatToastText');
+    
+    toastText.textContent = message;
+    if (type === 'error') {
+        icon.className = 'fas fa-exclamation-triangle';
+        icon.style.color = '#f97316';
+        toast.style.borderLeftColor = '#f97316';
+    } else if (type === 'info') {
+        icon.className = 'fas fa-info-circle';
+        icon.style.color = '#3b82f6';
+        toast.style.borderLeftColor = '#3b82f6';
+    } else {
+        icon.className = 'fas fa-check-circle';
+        icon.style.color = '#10b981';
+        toast.style.borderLeftColor = '#10b981';
+    }
+    
+    toast.classList.add('show');
+    toast.style.transform = 'translateX(0)';
+    
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.style.transform = 'translateX(400px)';
+        toast.classList.remove('show');
+    }, 2500);
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-// Initialize chat list click handlers
-function initChatList() {
-  document.querySelectorAll('.chat-user').forEach(user => {
-    user.addEventListener('click', () => {
-      const userName = user.getAttribute('data-user');
-      if (userName) switchConversation(userName);
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
     });
-  });
 }
 
-// Set initial position for chat window
-function setInitialPosition() {
-  if (chatWindow) {
-    chatWindow.style.position = 'fixed';
-    chatWindow.style.bottom = '20px';
-    chatWindow.style.right = '20px';
-    chatWindow.style.left = 'auto';
-    chatWindow.style.top = 'auto';
-  }
-}
-
-// Initialize everything
-document.addEventListener('DOMContentLoaded', () => {
-  loadMessages();
-  renderMessages();
-  initDrag();
-  initMinimize();
-  initSendMessage();
-  initChatList();
-  setInitialPosition();
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
+    await loadUsers();
+    initDrag();
+    initMinimize();
+    initSendMessage();
+    setInitialPosition();
+    startPolling();
+    
+    // Add empty chat message styles if not present
+    const style = document.createElement('style');
+    style.textContent = `
+        .empty-chat {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        .empty-chat i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        .empty-chat p {
+            font-size: 14px;
+        }
+    `;
+    document.head.appendChild(style);
 });
-
-// ==================== MEMBER LIST & ACCOUNT FUNCTIONALITY ====================
-
-// Team members data (placeholder for future database)
-const teamMembers = [
-  { name: 'Vince Villar', role: 'Lead Developer', status: 'online', avatar: 'VV', color: '3b82f6' },
-  { name: 'Ayelet De Castro', role: 'UI/UX Designer', status: 'online', avatar: 'AD', color: '10b981' },
-  { name: 'Sean Arkin Balmes', role: 'Project Manager', status: 'away', avatar: 'SB', color: 'f59e0b' },
-  { name: 'Maria Santos', role: 'QA Engineer', status: 'offline', avatar: 'MS', color: '8b5cf6' },
-  { name: 'James Wilson', role: 'DevOps', status: 'online', avatar: 'JW', color: 'ef4444' }
-];
-
-// Current user data (placeholder for future authentication)
-let currentUser = {
-  name: 'Current User',
-  status: 'online',
-  avatar: 'ME',
-  color: '3b82f6'
-};
-
-// Load member status from localStorage (placeholder)
-function loadMemberStatus() {
-  const stored = localStorage.getItem('shiagari_member_status');
-  if (stored) {
-    const statusMap = JSON.parse(stored);
-    teamMembers.forEach(member => {
-      if (statusMap[member.name]) {
-        member.status = statusMap[member.name];
-      }
-    });
-  }
-  updateMemberListUI();
-}
-
-// Save member status (placeholder)
-function saveMemberStatus() {
-  const statusMap = {};
-  teamMembers.forEach(member => {
-    statusMap[member.name] = member.status;
-  });
-  localStorage.setItem('shiagari_member_status', JSON.stringify(statusMap));
-}
-
-// Update member list UI
-function updateMemberListUI() {
-  const membersList = document.getElementById('membersList');
-  if (!membersList) return;
-  
-  membersList.innerHTML = teamMembers.map(member => `
-    <div class="member" data-user="${member.name}" data-status="${member.status}">
-      <img src="https://ui-avatars.com/api/?background=${member.color}&color=fff&name=${member.avatar}" alt="${member.name}">
-      <div class="member-info">
-        <span class="member-name">${escapeHtml(member.name)}</span>
-        <span class="member-role">${escapeHtml(member.role)}</span>
-      </div>
-      <span class="status ${member.status}"></span>
-    </div>
-  `).join('');
-  
-  // Update member count
-  const memberCount = document.getElementById('memberCount');
-  if (memberCount) memberCount.textContent = teamMembers.length;
-  
-  // Attach click handlers for members (placeholder - future DM feature)
-  document.querySelectorAll('.member').forEach(member => {
-    member.addEventListener('click', () => {
-      const userName = member.getAttribute('data-user');
-      showToast(`@${userName} - Direct message coming soon!`, 'info');
-    });
-  });
-}
-
-// Update account info (placeholder for future auth)
-function updateAccountUI() {
-  const accountAvatar = document.querySelector('.account-avatar');
-  const accountName = document.querySelector('.account-name');
-  const accountStatus = document.querySelector('.account-status');
-  
-  if (accountAvatar) {
-    accountAvatar.src = `https://ui-avatars.com/api/?background=${currentUser.color}&color=fff&name=${currentUser.avatar}&bold=true`;
-  }
-  if (accountName) accountName.textContent = currentUser.name;
-  if (accountStatus) {
-    accountStatus.textContent = currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1);
-    accountStatus.style.color = currentUser.status === 'online' ? '#10b981' : currentUser.status === 'away' ? '#f59e0b' : '#6b7280';
-  }
-}
-
-// Settings button (placeholder for future user settings)
-function initAccountButtons() {
-  const settingsBtn = document.getElementById('settingsBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-  
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', () => {
-      showToast('User settings coming soon! (Future: PHP authentication)', 'info');
-    });
-  }
-  
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      showToast('Logout functionality coming soon with PHP backend!', 'info');
-    });
-  }
-}
-
-// Escape HTML helper (if not already defined)
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-// Initialize member list and account
-function initSidebarFeatures() {
-  loadMemberStatus();
-  updateAccountUI();
-  initAccountButtons();
-}
-
-// Call this after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSidebarFeatures);
-} else {
-  initSidebarFeatures();
-}
