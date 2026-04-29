@@ -17,22 +17,54 @@ async function checkAuth() {
     }
 }
 
+// Show loading spinner
+function showLoading() {
+    const grid = document.getElementById('projectsGrid');
+    if (grid) {
+        grid.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading projects...</p>
+            </div>
+        `;
+    }
+}
+
 // Fetch projects from database
 async function loadProjects() {
+    showLoading();
+    
     try {
         const response = await fetch('../api/projects.php');
         const data = await response.json();
         
         if (data.success) {
-            projects = data.projects;
+            projects = data.projects || [];
             renderProjects();
             updateCount();
         } else if (data.message === 'Not logged in') {
             window.location.href = '../index.php';
+        } else {
+            showErrorState();
         }
     } catch (error) {
         console.error('Error loading projects:', error);
+        showErrorState();
         showToast('Error loading projects', 'error');
+    }
+}
+
+// Show error state
+function showErrorState() {
+    const grid = document.getElementById('projectsGrid');
+    if (grid) {
+        grid.innerHTML = `
+            <div class="error-container">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Failed to load projects</p>
+                <button class="retry-btn" onclick="location.reload()">Retry</button>
+            </div>
+        `;
     }
 }
 
@@ -42,6 +74,12 @@ async function addProject(name, description, status) {
         showToast('Project name required', 'error');
         return false;
     }
+    
+    // Show loading on save button
+    const saveBtn = document.getElementById('saveProjectBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveBtn.disabled = true;
     
     try {
         const response = await fetch('../api/projects.php', {
@@ -57,7 +95,7 @@ async function addProject(name, description, status) {
         const data = await response.json();
         
         if (data.success) {
-            await loadProjects(); // Reload from database
+            await loadProjects();
             showToast(`"${name}" created`, 'success');
             return true;
         } else {
@@ -67,6 +105,9 @@ async function addProject(name, description, status) {
     } catch (error) {
         showToast('Error creating project', 'error');
         return false;
+    } finally {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
     }
 }
 
@@ -177,6 +218,9 @@ function showToast(message, type = 'success') {
     if (type === 'error') {
         iconElem.className = 'fas fa-exclamation-triangle';
         iconElem.style.color = '#f97316';
+    } else if (type === 'info') {
+        iconElem.className = 'fas fa-info-circle';
+        iconElem.style.color = '#3b82f6';
     } else {
         iconElem.className = 'fas fa-check-circle';
         iconElem.style.color = '#10b981';
@@ -225,11 +269,60 @@ async function handleCreate() {
     }
 }
 
+// Add loading spinner CSS
+function addLoadingStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .loading-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #1e293b;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .error-container {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ef4444;
+        }
+        .error-container i {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .retry-btn {
+            margin-top: 16px;
+            padding: 8px 24px;
+            background: #3b82f6;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+        }
+        .retry-btn:hover {
+            background: #2563eb;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    addLoadingStyles();
     await checkAuth();
     await loadProjects();
-    renderProjects();
 
     document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
     document.getElementById('cancelModalBtn')?.addEventListener('click', closeModal);
@@ -245,7 +338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.key === 'Escape' && isModalOpen) closeModal();
     });
     
-    // Roadmap placeholder (will be updated later)
+    // Roadmap placeholder
     document.getElementById('navRoadmap')?.addEventListener('click', (e) => {
         e.preventDefault();
         showToast('Roadmap planner coming soon!', 'info');
