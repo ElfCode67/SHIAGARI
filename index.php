@@ -1,6 +1,11 @@
 <?php
 require_once 'config/database.php';
 
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if (isset($_SESSION['user_id']) && isset($_SESSION['logged_in'])) {
     header('Location: dashboard.php');
     exit;
@@ -167,6 +172,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['logged_in'])) {
 <div class="toast" id="toastMsg"><i class="fas fa-check-circle"></i><span id="toastText"></span></div>
 
 <script>
+// Get CSRF token from PHP
+const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+
 function showToast(message, isError = false) {
     const toast = document.getElementById('toastMsg');
     const toastText = document.getElementById('toastText');
@@ -189,9 +197,11 @@ document.getElementById('showLogin')?.addEventListener('click', (e) => {
 
 document.getElementById('loginFormElement')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const formData = new FormData();
     formData.append('login', document.getElementById('loginEmail').value);
     formData.append('password', document.getElementById('loginPassword').value);
+    formData.append('csrf_token', csrfToken);
     
     const response = await fetch('auth/login.php', { method: 'POST', body: formData });
     const data = await response.json();
@@ -206,12 +216,14 @@ document.getElementById('loginFormElement')?.addEventListener('submit', async (e
 
 document.getElementById('signupFormElement')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const formData = new FormData();
     formData.append('full_name', document.getElementById('signupFullName').value);
     formData.append('username', document.getElementById('signupUsername').value);
     formData.append('email', document.getElementById('signupEmail').value);
     formData.append('password', document.getElementById('signupPassword').value);
     formData.append('confirm_password', document.getElementById('signupConfirmPassword').value);
+    formData.append('csrf_token', csrfToken);
     
     const response = await fetch('auth/register.php', { method: 'POST', body: formData });
     const data = await response.json();
