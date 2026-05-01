@@ -10,13 +10,22 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $method = $_SERVER['REQUEST_METHOD'];
 
+// CSRF Validation for POST, PUT, DELETE methods
+function validateCSRF() {
+    $headers = getallheaders();
+    $token = $headers['X-CSRF-Token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+    
+    if (!$token || $token !== $_SESSION['api_csrf_token']) {
+        echo json_encode(['success' => false, 'message' => 'Invalid security token']);
+        return false;
+    }
+    return true;
+}
+
 // Helper function to sanitize input
 function sanitize($input) {
-    // Remove leading/trailing whitespace
     $input = trim($input);
-    // Convert special characters to HTML entities
     $input = htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
-    // Remove any remaining potential XSS vectors
     $input = strip_tags($input);
     return $input;
 }
@@ -42,6 +51,9 @@ switch ($method) {
         break;
         
     case 'POST':
+        // Validate CSRF token for write operations
+        if (!validateCSRF()) exit;
+        
         $raw_data = file_get_contents('php://input');
         $data = json_decode($raw_data, true);
         
@@ -59,22 +71,16 @@ switch ($method) {
             exit;
         }
         
-        if (strlen($description) > 1000) {
-            echo json_encode(['success' => false, 'message' => 'Description cannot exceed 1000 characters']);
-            exit;
-        }
-        
         $stmt = $pdo->prepare("INSERT INTO projects (user_id, name, description, status) VALUES (?, ?, ?, ?)");
         $stmt->execute([$user_id, $name, $description, $status]);
         
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Project created',
-            'id' => $pdo->lastInsertId()
-        ]);
+        echo json_encode(['success' => true, 'message' => 'Project created']);
         break;
         
     case 'PUT':
+        // Validate CSRF token for write operations
+        if (!validateCSRF()) exit;
+        
         $raw_data = file_get_contents('php://input');
         $data = json_decode($raw_data, true);
         
@@ -107,6 +113,9 @@ switch ($method) {
         break;
         
     case 'DELETE':
+        // Validate CSRF token for write operations
+        if (!validateCSRF()) exit;
+        
         $id = isset($_GET['id']) ? filter_var($_GET['id'], FILTER_VALIDATE_INT) : 0;
         
         if ($id <= 0) {

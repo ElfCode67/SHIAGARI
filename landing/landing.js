@@ -1,6 +1,42 @@
-// SHIAGARI - Projects Manager (PHP + MySQL Version)
+// SHIAGARI - Projects Manager (PHP + MySQL Version with CSRF)
 
 let projects = [];
+let csrfToken = null;
+
+// Fetch CSRF token from session
+async function fetchCSRFToken() {
+    try {
+        const response = await fetch('../auth/get_csrf_token.php');
+        const data = await response.json();
+        if (data.token) {
+            csrfToken = data.token;
+        }
+    } catch (error) {
+        console.error('Error fetching CSRF token:', error);
+    }
+}
+
+// Helper function to make authenticated API requests
+async function apiRequest(url, options = {}) {
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        }
+    };
+    
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+        }
+    };
+    
+    const response = await fetch(url, mergedOptions);
+    return await response.json();
+}
 
 // Check if user is logged in
 async function checkAuth() {
@@ -35,8 +71,7 @@ async function loadProjects() {
     showLoading();
     
     try {
-        const response = await fetch('../api/projects.php');
-        const data = await response.json();
+        const data = await apiRequest('../api/projects.php');
         
         if (data.success) {
             projects = data.projects || [];
@@ -54,20 +89,6 @@ async function loadProjects() {
     }
 }
 
-// Show error state
-function showErrorState() {
-    const grid = document.getElementById('projectsGrid');
-    if (grid) {
-        grid.innerHTML = `
-            <div class="error-container">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load projects</p>
-                <button class="retry-btn" onclick="location.reload()">Retry</button>
-            </div>
-        `;
-    }
-}
-
 // Save project to database
 async function addProject(name, description, status) {
     if (!name || !name.trim()) {
@@ -75,24 +96,20 @@ async function addProject(name, description, status) {
         return false;
     }
     
-    // Show loading on save button
     const saveBtn = document.getElementById('saveProjectBtn');
     const originalText = saveBtn.innerHTML;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     saveBtn.disabled = true;
     
     try {
-        const response = await fetch('../api/projects.php', {
+        const data = await apiRequest('../api/projects.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: name.trim(),
                 description: description?.trim() || '',
                 status: status || 'active'
             })
         });
-        
-        const data = await response.json();
         
         if (data.success) {
             await loadProjects();
@@ -118,10 +135,9 @@ async function deleteProject(id) {
     
     if (confirm(`Delete "${project.name}"?`)) {
         try {
-            const response = await fetch(`../api/projects.php?id=${id}`, {
+            const data = await apiRequest(`../api/projects.php?id=${id}`, {
                 method: 'DELETE'
             });
-            const data = await response.json();
             
             if (data.success) {
                 await loadProjects();
@@ -193,7 +209,6 @@ function renderProjects() {
     html += `<div class="add-btn" id="openModalBtn">+</div>`;
     grid.innerHTML = html;
 
-    // Attach delete event listeners
     document.querySelectorAll('.delete-card').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -202,7 +217,6 @@ function renderProjects() {
         });
     });
     
-    // Attach modal opener
     document.getElementById('openModalBtn')?.addEventListener('click', openModal);
 }
 
@@ -231,6 +245,19 @@ function showToast(message, type = 'success') {
     toastTimeout = setTimeout(() => {
         toast.classList.remove('show');
     }, 2500);
+}
+
+function showErrorState() {
+    const grid = document.getElementById('projectsGrid');
+    if (grid) {
+        grid.innerHTML = `
+            <div class="error-container">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Failed to load projects</p>
+                <button class="retry-btn" onclick="location.reload()">Retry</button>
+            </div>
+        `;
+    }
 }
 
 // Modal logic
@@ -273,47 +300,25 @@ async function handleCreate() {
 function addLoadingStyles() {
     const style = document.createElement('style');
     style.textContent = `
-        .loading-container {
-            text-align: center;
-            padding: 60px 20px;
-        }
+        .loading-container { text-align: center; padding: 60px 20px; }
         .loading-spinner {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             border: 3px solid #1e293b;
             border-top-color: #3b82f6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 16px;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .loading-text {
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .error-container {
-            text-align: center;
-            padding: 60px 20px;
-            color: #ef4444;
-        }
-        .error-container i {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #6b7280; font-size: 14px; }
+        .error-container { text-align: center; padding: 60px 20px; color: #ef4444; }
+        .error-container i { font-size: 48px; margin-bottom: 16px; }
         .retry-btn {
-            margin-top: 16px;
-            padding: 8px 24px;
-            background: #3b82f6;
-            border: none;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
+            margin-top: 16px; padding: 8px 24px;
+            background: #3b82f6; border: none;
+            border-radius: 20px; color: white; cursor: pointer;
         }
-        .retry-btn:hover {
-            background: #2563eb;
-        }
+        .retry-btn:hover { background: #2563eb; }
     `;
     document.head.appendChild(style);
 }
@@ -322,6 +327,7 @@ function addLoadingStyles() {
 document.addEventListener('DOMContentLoaded', async () => {
     addLoadingStyles();
     await checkAuth();
+    await fetchCSRFToken();
     await loadProjects();
 
     document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
@@ -338,7 +344,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.key === 'Escape' && isModalOpen) closeModal();
     });
     
-    // Roadmap placeholder
     document.getElementById('navRoadmap')?.addEventListener('click', (e) => {
         e.preventDefault();
         showToast('Roadmap planner coming soon!', 'info');

@@ -1,6 +1,6 @@
 <?php
 // Database configuration
-$host = 'localhost:3307';
+$host = 'localhost';
 $dbname = 'shiagari_db';
 $username = 'root';
 $password = '';
@@ -16,5 +16,10 @@ try {
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Generate CSRF token if not exists and user is logged in
+if (isset($_SESSION['user_id']) && empty($_SESSION['api_csrf_token'])) {
+    $_SESSION['api_csrf_token'] = bin2hex(random_bytes(32));
 }
 ?>
