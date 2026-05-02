@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SHIAGARI · Projects</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>SHIAGARI · Projects Board</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="landing.css">
@@ -13,53 +13,61 @@
   <aside class="sidebar">
     <h1>SHIAGARI</h1>
     <nav>
-      <a href="../landing/landing.html" class="active">📁 Projects</a>
-      <a href="../idea/idea.html">💡 Idea Factory</a>
-      <a href="../progress/progress.html">📊 Progress</a>
-      <a href="../roadmap/roadmap.html">🗺️ Roadmap</a>
-      <a href="../postboard/postboard.html">📰 Post Board</a>
-      <a href="../message/message.html">💬 Chats</a>
+      <a href="../landing/landing.html" class="active"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+      <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+      <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+      <a href="#" id="navRoadmap"><i class="fas fa-clipboard-list"></i> <span>Roadmap</span></a>
     </nav>
   </aside>
 
   <main class="main">
-    <div class="topbar">
+    <header class="topbar">
       <h2>Projects</h2>
       <div class="stats-badge">
         <i class="fas fa-rocket"></i>
-        <span id="projectCount">0</span> projects
+        <span id="projectCount">0</span> active projects
       </div>
-    </div>
+    </header>
 
-    <div id="projectsContainer" class="projects">
-      <!-- Projects will appear here -->
-    </div>
+    <section class="projects" id="projectsGrid"></section>
   </main>
 
   <!-- Add Project Modal -->
-  <div id="projectModal" class="modal">
+  <div class="modal" id="projectModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>New Project</h3>
-        <button id="closeModalBtn" class="close-btn">&times;</button>
+        <h3><i class="fas fa-plus-circle"></i> Create New Project</h3>
+        <button class="modal-close" id="closeModalBtn">&times;</button>
       </div>
       <div class="modal-body">
-        <input type="text" id="projectName" placeholder="Project name">
-        <textarea id="projectDesc" placeholder="Description"></textarea>
-        <select id="projectStatus">
-          <option value="active">Active</option>
-          <option value="planning">Planning</option>
-          <option value="hold">On Hold</option>
-        </select>
+        <div class="form-group">
+          <label><i class="fas fa-tag"></i> Project Name</label>
+          <input type="text" id="projectName" placeholder="e.g., AI Dashboard" maxlength="40">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-align-left"></i> Description</label>
+          <textarea id="projectDesc" rows="3" placeholder="Short description..."></textarea>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-chart-simple"></i> Status</label>
+          <select id="projectStatus">
+            <option value="active">🚀 Active</option>
+            <option value="planning">📋 Planning</option>
+            <option value="hold">⏸ On Hold</option>
+          </select>
+        </div>
       </div>
       <div class="modal-footer">
-        <button id="cancelModalBtn" class="btn-secondary">Cancel</button>
-        <button id="saveProjectBtn" class="btn-primary">Create</button>
+        <button class="btn-secondary" id="cancelModalBtn">Cancel</button>
+        <button class="btn-primary" id="saveProjectBtn">Create Project</button>
       </div>
     </div>
   </div>
 
-  <div id="toastMsg" class="toast">Project saved!</div>
+  <div class="toast" id="toastMsg">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastText">Project created!</span>
+  </div>
 
   <script src="landing.js"></script>
 </body>
