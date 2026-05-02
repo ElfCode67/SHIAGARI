@@ -1,5 +1,0 @@
-{
-  "php.validate.enable": true,
-  "php.validate.executablePath": "C:/xampp/php/php.exe",
-  "intelephense.files.maxSize": 5000000
-}

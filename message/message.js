@@ -1,434 +1,267 @@
-// SHIAGARI - Chat Module (PHP + MySQL Version)
+// SHIAGARI - Chat Module (Frontend Only)
 
-let conversations = {};
-let currentUser = '';
-let currentUserId = null;
-let allUsers = [];
+let currentUser = null;
+let messages = [];
 
-// Check if user is logged in
-async function checkAuth() {
-    try {
-        const response = await fetch('../auth/check_session.php');
-        const data = await response.json();
-        
-        if (!data.logged_in) {
-            window.location.href = '../index.php';
-        }
-        currentUserId = data.user?.id;
-        return data.logged_in;
-    } catch (error) {
-        window.location.href = '../index.php';
-    }
+// Demo users
+const users = [
+  { id: 1, name: 'Vince Villar', avatar: 'VV', status: 'online' },
+  { id: 2, name: 'Ayelet De Castro', avatar: 'AD', status: 'online' },
+  { id: 3, name: 'Sean Arkin', avatar: 'SA', status: 'away' },
+  { id: 4, name: 'Maria Santos', avatar: 'MS', status: 'offline' }
+];
+
+// Demo messages for each user
+const messageHistory = {
+  1: [
+    { id: 1, text: 'Hello!', sender: 'other', time: '10:30 AM' },
+    { id: 2, text: 'Hi there! 👋', sender: 'me', time: '10:31 AM' },
+    { id: 3, text: 'How is the project going?', sender: 'other', time: '10:32 AM' },
+    { id: 4, text: 'Going great! Almost done.', sender: 'me', time: '10:33 AM' }
+  ],
+  2: [
+    { id: 1, text: 'Great work on the design!', sender: 'other', time: '9:15 AM' },
+    { id: 2, text: 'Thank you!', sender: 'me', time: '9:16 AM' }
+  ],
+  3: [
+    { id: 1, text: 'Meeting at 2pm?', sender: 'other', time: 'Yesterday' },
+    { id: 2, text: 'Yes, see you then', sender: 'me', time: 'Yesterday' }
+  ],
+  4: []
+};
+
+// ========== DATA (Backend: replace with API) ==========
+
+function loadUsers() {
+  // TODO: Replace with fetch('/api/users')
+  renderUserList();
 }
 
-// Fetch all users for chat list
-async function loadUsers() {
-    try {
-        const response = await fetch('../api/messages.php?action=get_users');
-        const data = await response.json();
-        
-        if (data.success) {
-            allUsers = data.users;
-            renderChatList();
-        }
-    } catch (error) {
-        console.error('Error loading users:', error);
-    }
+function loadMessages(userId) {
+  // TODO: Replace with fetch(`/api/messages/${userId}`)
+  messages = messageHistory[userId] || [];
+  renderMessages();
 }
 
-// Fetch messages for a specific user
-async function loadMessages(otherUserId, otherUserName) {
-    try {
-        const response = await fetch(`../api/messages.php?action=get_messages&other_user_id=${otherUserId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            if (!conversations[otherUserName]) {
-                conversations[otherUserName] = {
-                    id: otherUserId,
-                    messages: []
-                };
-            }
-            conversations[otherUserName].messages = data.messages;
-            renderMessages();
-        }
-    } catch (error) {
-        console.error('Error loading messages:', error);
-        showToast('Error loading messages', 'error');
-    }
-}
-
-// Send a message
-async function sendMessage(toUserId, message) {
-    if (!message.trim()) return false;
-    
-    try {
-        const response = await fetch('../api/messages.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'send',
-                to_user_id: toUserId,
-                message: message.trim()
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Reload messages for this conversation
-            await loadMessages(toUserId, currentUser);
-            showToast('Message sent', 'success');
-            return true;
-        } else {
-            showToast(data.message, 'error');
-            return false;
-        }
-    } catch (error) {
-        showToast('Error sending message', 'error');
-        return false;
-    }
-}
-
-// Mark messages as read
-async function markAsRead(otherUserId) {
-    try {
-        await fetch('../api/messages.php', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'mark_read',
-                other_user_id: otherUserId
-            })
-        });
-    } catch (error) {
-        console.error('Error marking messages as read:', error);
-    }
-}
-
-// Render chat list
-function renderChatList() {
-    const chatListContainer = document.querySelector('.chat-list');
-    if (!chatListContainer) return;
-    
-    // Keep the header
-    const header = chatListContainer.querySelector('.chat-list-header');
-    
-    let usersHtml = '';
-    allUsers.forEach(user => {
-        // Don't show current user in chat list
-        if (user.id == currentUserId) return;
-        
-        const avatarUrl = `https://ui-avatars.com/api/?background=${user.avatar_color || '3b82f6'}&color=fff&name=${user.username?.charAt(0) || 'U'}`;
-        const statusClass = user.status || 'offline';
-        const statusText = statusClass === 'online' ? '🟢 Online' : (statusClass === 'away' ? '🟡 Away' : '⚫ Offline');
-        
-        usersHtml += `
-            <div class="chat-user" data-user-id="${user.id}" data-user-name="${user.full_name || user.username}">
-                <img src="${avatarUrl}" alt="${user.full_name || user.username}">
-                <div class="chat-user-info">
-                    <span class="chat-user-name">${escapeHtml(user.full_name || user.username)}</span>
-                    <span class="chat-user-preview">${statusText}</span>
-                </div>
-            </div>
-        `;
+function sendMessage(userId, text) {
+  if (!text.trim()) return;
+  
+  // TODO: Replace with fetch('/api/messages', { method: 'POST', body: {...} })
+  messages.push({
+    id: Date.now(),
+    text: text.trim(),
+    sender: 'me',
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  
+  // Simulate reply (remove in production)
+  setTimeout(() => {
+    const replies = ['Thanks! 👍', 'Interesting!', 'I agree!', 'Let me check that.'];
+    const randomReply = replies[Math.floor(Math.random() * replies.length)];
+    messages.push({
+      id: Date.now(),
+      text: randomReply,
+      sender: 'other',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
-    
-    // Update the chat list (keep header, replace users)
-    const existingUsers = chatListContainer.querySelectorAll('.chat-user');
-    existingUsers.forEach(el => el.remove());
-    chatListContainer.insertAdjacentHTML('beforeend', usersHtml);
-    
-    // Attach click handlers
-    document.querySelectorAll('.chat-user').forEach(user => {
-        user.addEventListener('click', async () => {
-            const userId = user.getAttribute('data-user-id');
-            const userName = user.getAttribute('data-user-name');
-            
-            // Remove active class from all
-            document.querySelectorAll('.chat-user').forEach(u => u.classList.remove('active'));
-            user.classList.add('active');
-            
-            currentUser = userName;
-            await loadMessages(userId, userName);
-            await markAsRead(userId);
-            
-            // Update chat header
-            const avatarUrl = user.querySelector('img').src;
-            document.getElementById('currentAvatar').src = avatarUrl;
-            document.getElementById('currentUserName').textContent = userName;
-        });
-    });
+    renderMessages();
+    saveToLocalStorage(userId);
+    showToast(`New message from ${currentUser?.name}`);
+  }, 1000);
+  
+  renderMessages();
+  saveToLocalStorage(userId);
+  showToast('Message sent');
 }
 
-// Render messages in chat window
+// Save to localStorage (temporary - backend will replace)
+function saveToLocalStorage(userId) {
+  const allMessages = JSON.parse(localStorage.getItem('chat_messages') || '{}');
+  allMessages[userId] = messages;
+  localStorage.setItem('chat_messages', JSON.stringify(allMessages));
+}
+
+function loadFromLocalStorage(userId) {
+  const allMessages = JSON.parse(localStorage.getItem('chat_messages') || '{}');
+  if (allMessages[userId]) {
+    messages = allMessages[userId];
+  } else {
+    messages = messageHistory[userId] || [];
+  }
+  renderMessages();
+}
+
+// ========== RENDER ==========
+
+function renderUserList() {
+  const container = document.getElementById('chatList');
+  if (!container) return;
+  
+  container.innerHTML = users.map(user => `
+    <div class="chat-user" data-id="${user.id}">
+      <div class="chat-avatar">${user.avatar}</div>
+      <div class="chat-user-info">
+        <span class="chat-user-name">${escapeHtml(user.name)}</span>
+        <span class="chat-user-preview">${user.status === 'online' ? '🟢 Online' : (user.status === 'away' ? '🟡 Away' : '⚫ Offline')}</span>
+      </div>
+    </div>
+  `).join('');
+  
+  // Add click handlers
+  document.querySelectorAll('.chat-user').forEach(user => {
+    user.onclick = () => {
+      const userId = parseInt(user.dataset.id);
+      const userData = users.find(u => u.id === userId);
+      switchChat(userId, userData);
+    };
+  });
+}
+
+function switchChat(userId, userData) {
+  currentUser = userData;
+  
+  // Update active state
+  document.querySelectorAll('.chat-user').forEach(u => u.classList.remove('active'));
+  document.querySelector(`.chat-user[data-id="${userId}"]`).classList.add('active');
+  
+  // Update header
+  document.getElementById('currentAvatar').innerText = userData.avatar;
+  document.getElementById('currentUserName').innerText = userData.name;
+  
+  // Enable input
+  document.getElementById('messageInput').disabled = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('messageInput').focus();
+  
+  // Load messages
+  loadFromLocalStorage(userId);
+}
+
 function renderMessages() {
-    const chatBody = document.getElementById('chatBody');
-    if (!chatBody) return;
-    
-    const messages = conversations[currentUser]?.messages || [];
-    
-    if (messages.length === 0) {
-        chatBody.innerHTML = `
-            <div class="empty-chat">
-                <i class="fas fa-comments"></i>
-                <p>No messages yet. Start a conversation!</p>
-            </div>
-        `;
-        return;
-    }
-    
-    chatBody.innerHTML = messages.map(msg => {
-        const isMe = msg.sender_id == currentUserId;
-        const senderInitial = isMe ? 'ME' : (msg.sender_name?.charAt(0) || 'U');
-        
-        return `
-            <div class="msg ${isMe ? 'right' : 'left'}">
-                ${!isMe ? `<div class="msg-avatar">${escapeHtml(senderInitial)}</div>` : ''}
-                <div class="msg-content">
-                    <div class="msg-text">${escapeHtml(msg.message)}</div>
-                    <div class="msg-time">${formatTime(msg.created_at)}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    // Scroll to bottom
-    chatBody.scrollTop = chatBody.scrollHeight;
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  
+  if (!messages.length) {
+    container.innerHTML = '<div class="empty-chat">No messages yet. Say hello!</div>';
+    return;
+  }
+  
+  container.innerHTML = messages.map(msg => `
+    <div class="message ${msg.sender === 'me' ? 'sent' : 'received'}">
+      <div class="message-bubble">
+        <div>${escapeHtml(msg.text)}</div>
+        <div class="message-time">${msg.time}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  // Scroll to bottom
+  container.scrollTop = container.scrollHeight;
 }
 
-// Format time
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    if (diff < 3600000) {
-        const minutes = Math.floor(diff / 60000);
-        return `${minutes}m ago`;
-    } else if (diff < 86400000) {
-        const hours = Math.floor(diff / 3600000);
-        return `${hours}h ago`;
-    } else {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-}
+// ========== SEND MESSAGE ==========
 
-// Send message handler
 function initSendMessage() {
-    const sendBtn = document.getElementById('sendBtn');
-    const messageInput = document.getElementById('messageInput');
-    
-    if (sendBtn) {
-        sendBtn.addEventListener('click', async () => {
-            if (!currentUser) {
-                showToast('Select a user to chat with', 'error');
-                return;
-            }
-            
-            const otherUser = allUsers.find(u => (u.full_name || u.username) === currentUser);
-            if (otherUser) {
-                await sendMessage(otherUser.id, messageInput.value);
-                messageInput.value = '';
-                messageInput.focus();
-            }
-        });
+  const sendBtn = document.getElementById('sendBtn');
+  const messageInput = document.getElementById('messageInput');
+  
+  sendBtn.onclick = () => {
+    if (currentUser && messageInput.value.trim()) {
+      sendMessage(currentUser.id, messageInput.value);
+      messageInput.value = '';
+      messageInput.focus();
     }
-    
-    if (messageInput) {
-        messageInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                if (!currentUser) {
-                    showToast('Select a user to chat with', 'error');
-                    return;
-                }
-                
-                const otherUser = allUsers.find(u => (u.full_name || u.username) === currentUser);
-                if (otherUser) {
-                    await sendMessage(otherUser.id, messageInput.value);
-                    messageInput.value = '';
-                }
-            }
-        });
+  };
+  
+  messageInput.onkeypress = (e) => {
+    if (e.key === 'Enter' && currentUser && messageInput.value.trim()) {
+      sendMessage(currentUser.id, messageInput.value);
+      messageInput.value = '';
     }
+  };
 }
 
-// Poll for new messages every 5 seconds
-let pollInterval = null;
+// ========== DRAG WINDOW ==========
 
-function startPolling() {
-    if (pollInterval) clearInterval(pollInterval);
-    
-    pollInterval = setInterval(async () => {
-        if (currentUser) {
-            const otherUser = allUsers.find(u => (u.full_name || u.username) === currentUser);
-            if (otherUser) {
-                await loadMessages(otherUser.id, currentUser);
-            }
-        }
-    }, 5000);
-}
-
-// Drag functionality
-const chatWindow = document.getElementById('chatWindow');
-const dragHandle = document.getElementById('dragHandle');
 let isDragging = false;
 let dragOffsetX, dragOffsetY;
 
 function initDrag() {
-    if (!chatWindow || !dragHandle) return;
-    
-    dragHandle.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.chat-header-actions')) return;
-        isDragging = true;
-        const rect = chatWindow.getBoundingClientRect();
-        dragOffsetX = e.clientX - rect.left;
-        dragOffsetY = e.clientY - rect.top;
-        chatWindow.style.position = 'fixed';
-        chatWindow.style.cursor = 'grabbing';
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        let newLeft = e.clientX - dragOffsetX;
-        let newTop = e.clientY - dragOffsetY;
-        
-        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - chatWindow.offsetWidth));
-        newTop = Math.max(0, Math.min(newTop, window.innerHeight - chatWindow.offsetHeight));
-        
-        chatWindow.style.left = newLeft + 'px';
-        chatWindow.style.top = newTop + 'px';
-        chatWindow.style.right = 'auto';
-        chatWindow.style.bottom = 'auto';
-    });
-    
-    document.addEventListener('mouseup', () => {
-        isDragging = false;
-        if (chatWindow) chatWindow.style.cursor = '';
-    });
+  const chatWindow = document.getElementById('chatWindow');
+  const dragHandle = document.getElementById('dragHandle');
+  
+  dragHandle.onmousedown = (e) => {
+    if (e.target.closest('.minimize-btn')) return;
+    isDragging = true;
+    const rect = chatWindow.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    chatWindow.style.position = 'relative';
+    chatWindow.style.cursor = 'grabbing';
+  };
+  
+  document.onmousemove = (e) => {
+    if (!isDragging) return;
+    chatWindow.style.position = 'fixed';
+    chatWindow.style.left = (e.clientX - dragOffsetX) + 'px';
+    chatWindow.style.top = (e.clientY - dragOffsetY) + 'px';
+    chatWindow.style.right = 'auto';
+    chatWindow.style.bottom = 'auto';
+  };
+  
+  document.onmouseup = () => {
+    isDragging = false;
+    if (chatWindow) chatWindow.style.cursor = '';
+  };
 }
 
-// Minimize functionality
+// ========== MINIMIZE WINDOW ==========
+
 function initMinimize() {
-    const minBtn = document.getElementById('minBtn');
-    if (minBtn) {
-        minBtn.addEventListener('click', () => {
-            chatWindow.classList.toggle('minimized');
-            const icon = minBtn.querySelector('i');
-            if (chatWindow.classList.contains('minimized')) {
-                icon.className = 'fas fa-window-maximize';
-            } else {
-                icon.className = 'fas fa-minus';
-            }
-        });
-    }
+  const minBtn = document.getElementById('minimizeBtn');
+  const chatWindow = document.getElementById('chatWindow');
+  
+  minBtn.onclick = () => {
+    chatWindow.classList.toggle('minimized');
+    minBtn.innerText = chatWindow.classList.contains('minimized') ? '+' : '−';
+  };
 }
 
-// Set initial position
-function setInitialPosition() {
-    if (chatWindow) {
-        chatWindow.style.position = 'fixed';
-        chatWindow.style.bottom = '20px';
-        chatWindow.style.right = '20px';
-        chatWindow.style.left = 'auto';
-        chatWindow.style.top = 'auto';
+// Add minimized styles
+function addMinimizeStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .chat-window.minimized .chat-messages,
+    .chat-window.minimized .chat-input-area {
+      display: none;
     }
+    .chat-window.minimized {
+      height: 60px;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
-// Toast notification
-let toastTimeout = null;
+// ========== TOAST ==========
 
-function showToast(message, type = 'success') {
-    let toast = document.getElementById('chatToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'chatToast';
-        toast.className = 'toast';
-        toast.innerHTML = '<i class="fas"></i><span id="chatToastText"></span>';
-        document.body.appendChild(toast);
-        
-        toast.style.position = 'fixed';
-        toast.style.bottom = '30px';
-        toast.style.right = '30px';
-        toast.style.background = '#1e293b';
-        toast.style.padding = '12px 20px';
-        toast.style.borderRadius = '40px';
-        toast.style.display = 'flex';
-        toast.style.alignItems = 'center';
-        toast.style.gap = '10px';
-        toast.style.fontSize = '14px';
-        toast.style.fontWeight = '500';
-        toast.style.borderLeft = '4px solid #10b981';
-        toast.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
-        toast.style.transform = 'translateX(400px)';
-        toast.style.transition = 'transform 0.3s ease';
-        toast.style.zIndex = '1100';
-    }
-    
-    const icon = toast.querySelector('i');
-    const toastText = document.getElementById('chatToastText');
-    
-    toastText.textContent = message;
-    if (type === 'error') {
-        icon.className = 'fas fa-exclamation-triangle';
-        icon.style.color = '#f97316';
-        toast.style.borderLeftColor = '#f97316';
-    } else if (type === 'info') {
-        icon.className = 'fas fa-info-circle';
-        icon.style.color = '#3b82f6';
-        toast.style.borderLeftColor = '#3b82f6';
-    } else {
-        icon.className = 'fas fa-check-circle';
-        icon.style.color = '#10b981';
-        toast.style.borderLeftColor = '#10b981';
-    }
-    
-    toast.classList.add('show');
-    toast.style.transform = 'translateX(0)';
-    
-    if (toastTimeout) clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-        toast.style.transform = 'translateX(400px)';
-        toast.classList.remove('show');
-    }, 2500);
+function showToast(msg) {
+  const toast = document.getElementById('toastMsg');
+  toast.innerText = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-    await checkAuth();
-    await loadUsers();
-    initDrag();
-    initMinimize();
-    initSendMessage();
-    setInitialPosition();
-    startPolling();
-    
-    // Add empty chat message styles if not present
-    const style = document.createElement('style');
-    style.textContent = `
-        .empty-chat {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6b7280;
-        }
-        .empty-chat i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        .empty-chat p {
-            font-size: 14px;
-        }
-    `;
-    document.head.appendChild(style);
+// ========== INIT ==========
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadUsers();
+  initSendMessage();
+  initDrag();
+  initMinimize();
+  addMinimizeStyles();
 });

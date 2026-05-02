@@ -1,351 +1,132 @@
-// SHIAGARI - Projects Manager (PHP + MySQL Version with CSRF)
+// SHIAGARI - Projects (Frontend Only)
 
 let projects = [];
-let csrfToken = null;
 
-// Fetch CSRF token from session
-async function fetchCSRFToken() {
-    try {
-        const response = await fetch('../auth/get_csrf_token.php');
-        const data = await response.json();
-        if (data.token) {
-            csrfToken = data.token;
-        }
-    } catch (error) {
-        console.error('Error fetching CSRF token:', error);
-    }
+// ========== DATA (Backend team: replace with API calls) ==========
+
+function loadData() {
+  // TODO: Replace with API call
+  // fetch('/api/projects').then(res => res.json()).then(data => projects = data)
+  
+  const stored = localStorage.getItem('projects');
+  projects = stored ? JSON.parse(stored) : [
+    { id: 1, name: 'Nexus OS', description: 'Dashboard system', status: 'active' },
+    { id: 2, name: 'Lumina AI', description: 'AI assistant', status: 'active' },
+    { id: 3, name: 'Stellar UI', description: 'Component library', status: 'planning' }
+  ];
+  render();
 }
 
-// Helper function to make authenticated API requests
-async function apiRequest(url, options = {}) {
-    const defaultOptions = {
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        }
-    };
-    
-    const mergedOptions = {
-        ...defaultOptions,
-        ...options,
-        headers: {
-            ...defaultOptions.headers,
-            ...options.headers
-        }
-    };
-    
-    const response = await fetch(url, mergedOptions);
-    return await response.json();
+function saveData() {
+  // TODO: Replace with API call
+  // fetch('/api/projects', { method: 'POST', body: JSON.stringify(projects) })
+  
+  localStorage.setItem('projects', JSON.stringify(projects));
+  updateCount();
 }
 
-// Check if user is logged in
-async function checkAuth() {
-    try {
-        const response = await fetch('../auth/check_session.php');
-        const data = await response.json();
-        
-        if (!data.logged_in) {
-            window.location.href = '../index.php';
-        }
-        return data.logged_in;
-    } catch (error) {
-        window.location.href = '../index.php';
-    }
+// ========== UI RENDER ==========
+
+function render() {
+  const container = document.getElementById('projectsContainer');
+  if (!projects.length) {
+    container.innerHTML = '<div class="empty-state">No projects. Click + to add.</div>';
+    return;
+  }
+  
+  container.innerHTML = projects.map(p => `
+    <div class="project-card" data-status="${p.status}">
+      <div class="card-title">${escapeHtml(p.name)}</div>
+      <div class="card-desc">${escapeHtml(p.description)}</div>
+      <div class="card-footer">
+        <span>${p.status}</span>
+        <button class="delete-btn" data-id="${p.id}">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+  
+  // Add delete handlers
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.onclick = () => deleteProject(btn.dataset.id);
+  });
+  
+  updateCount();
 }
 
-// Show loading spinner
-function showLoading() {
-    const grid = document.getElementById('projectsGrid');
-    if (grid) {
-        grid.innerHTML = `
-            <div class="loading-container">
-                <div class="loading-spinner"></div>
-                <p class="loading-text">Loading projects...</p>
-            </div>
-        `;
-    }
-}
-
-// Fetch projects from database
-async function loadProjects() {
-    showLoading();
-    
-    try {
-        const data = await apiRequest('../api/projects.php');
-        
-        if (data.success) {
-            projects = data.projects || [];
-            renderProjects();
-            updateCount();
-        } else if (data.message === 'Not logged in') {
-            window.location.href = '../index.php';
-        } else {
-            showErrorState();
-        }
-    } catch (error) {
-        console.error('Error loading projects:', error);
-        showErrorState();
-        showToast('Error loading projects', 'error');
-    }
-}
-
-// Save project to database
-async function addProject(name, description, status) {
-    if (!name || !name.trim()) {
-        showToast('Project name required', 'error');
-        return false;
-    }
-    
-    const saveBtn = document.getElementById('saveProjectBtn');
-    const originalText = saveBtn.innerHTML;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    saveBtn.disabled = true;
-    
-    try {
-        const data = await apiRequest('../api/projects.php', {
-            method: 'POST',
-            body: JSON.stringify({
-                name: name.trim(),
-                description: description?.trim() || '',
-                status: status || 'active'
-            })
-        });
-        
-        if (data.success) {
-            await loadProjects();
-            showToast(`"${name}" created`, 'success');
-            return true;
-        } else {
-            showToast(data.message, 'error');
-            return false;
-        }
-    } catch (error) {
-        showToast('Error creating project', 'error');
-        return false;
-    } finally {
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-    }
-}
-
-// Delete project from database
-async function deleteProject(id) {
-    const project = projects.find(p => p.id == id);
-    if (!project) return;
-    
-    if (confirm(`Delete "${project.name}"?`)) {
-        try {
-            const data = await apiRequest(`../api/projects.php?id=${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (data.success) {
-                await loadProjects();
-                showToast(`"${project.name}" removed`, 'info');
-            } else {
-                showToast(data.message, 'error');
-            }
-        } catch (error) {
-            showToast('Error deleting project', 'error');
-        }
-    }
-}
-
-// Update project count in UI
 function updateCount() {
-    const countSpan = document.getElementById('projectCount');
-    if (countSpan) countSpan.textContent = projects.length;
+  document.getElementById('projectCount').innerText = projects.length;
 }
 
-// Get status icon and label
-function getStatusInfo(status) {
-    const map = {
-        active: { icon: 'fa-play-circle', label: 'Active', class: 'active' },
-        planning: { icon: 'fa-draw-polygon', label: 'Planning', class: 'planning' },
-        hold: { icon: 'fa-pause-circle', label: 'On Hold', class: 'hold' }
-    };
-    return map[status] || map.active;
+// ========== CRUD ==========
+
+function addProject() {
+  const name = document.getElementById('projectName').value.trim();
+  if (!name) return showToast('Name required', true);
+  
+  projects.unshift({
+    id: Date.now(),
+    name: name,
+    description: document.getElementById('projectDesc').value,
+    status: document.getElementById('projectStatus').value
+  });
+  
+  saveData();
+  render();
+  closeModal();
+  showToast('Project added');
 }
 
-// Escape HTML to prevent XSS
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
+function deleteProject(id) {
+  if (confirm('Delete this project?')) {
+    projects = projects.filter(p => p.id != id);
+    saveData();
+    render();
+    showToast('Project deleted');
+  }
 }
 
-// Render projects grid
-function renderProjects() {
-    const grid = document.getElementById('projectsGrid');
-    if (!grid) return;
-
-    if (projects.length === 0) {
-        grid.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open"></i><p>No projects yet. Click + to create!</p></div><div class="add-btn" id="openModalBtn">+</div>`;
-        const btn = document.getElementById('openModalBtn');
-        if (btn) btn.addEventListener('click', openModal);
-        return;
-    }
-
-    let html = '';
-    projects.forEach(proj => {
-        const status = getStatusInfo(proj.status);
-        html += `
-            <div class="project-card" data-id="${proj.id}" data-status="${proj.status}">
-                <div>
-                    <div class="card-title"><i class="fas fa-cube"></i> ${escapeHtml(proj.name)}</div>
-                    <div class="card-desc">${escapeHtml(proj.description || 'No description')}</div>
-                </div>
-                <div class="card-footer">
-                    <span class="status-badge ${status.class}"><i class="fas ${status.icon}"></i> ${status.label}</span>
-                    <button class="delete-card" data-id="${proj.id}"><i class="fas fa-trash-alt"></i></button>
-                </div>
-            </div>
-        `;
-    });
-    html += `<div class="add-btn" id="openModalBtn">+</div>`;
-    grid.innerHTML = html;
-
-    document.querySelectorAll('.delete-card').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.getAttribute('data-id');
-            deleteProject(id);
-        });
-    });
-    
-    document.getElementById('openModalBtn')?.addEventListener('click', openModal);
-}
-
-// Toast notification
-let toastTimeout = null;
-
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toastMsg');
-    const toastText = document.getElementById('toastText');
-    const iconElem = toast.querySelector('i');
-    
-    toastText.textContent = message;
-    if (type === 'error') {
-        iconElem.className = 'fas fa-exclamation-triangle';
-        iconElem.style.color = '#f97316';
-    } else if (type === 'info') {
-        iconElem.className = 'fas fa-info-circle';
-        iconElem.style.color = '#3b82f6';
-    } else {
-        iconElem.className = 'fas fa-check-circle';
-        iconElem.style.color = '#10b981';
-    }
-    
-    toast.classList.add('show');
-    if (toastTimeout) clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2500);
-}
-
-function showErrorState() {
-    const grid = document.getElementById('projectsGrid');
-    if (grid) {
-        grid.innerHTML = `
-            <div class="error-container">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load projects</p>
-                <button class="retry-btn" onclick="location.reload()">Retry</button>
-            </div>
-        `;
-    }
-}
-
-// Modal logic
-const modal = document.getElementById('projectModal');
-let isModalOpen = false;
+// ========== MODAL ==========
 
 function openModal() {
-    if (!modal) return;
-    document.getElementById('projectName').value = '';
-    document.getElementById('projectDesc').value = '';
-    document.getElementById('projectStatus').value = 'active';
-    modal.style.display = 'flex';
-    isModalOpen = true;
-    setTimeout(() => document.getElementById('projectName').focus(), 100);
+  document.getElementById('projectModal').style.display = 'flex';
+  document.getElementById('projectName').focus();
 }
 
 function closeModal() {
-    if (modal) {
-        modal.style.display = 'none';
-        isModalOpen = false;
-    }
+  document.getElementById('projectModal').style.display = 'none';
 }
 
-async function handleCreate() {
-    const name = document.getElementById('projectName').value.trim();
-    const desc = document.getElementById('projectDesc').value;
-    const status = document.getElementById('projectStatus').value;
-    
-    if (!name) {
-        showToast('Enter project name', 'error');
-        return;
-    }
-    
-    if (await addProject(name, desc, status)) {
-        closeModal();
-    }
+// ========== TOAST ==========
+
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('toastMsg');
+  toast.innerText = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
-// Add loading spinner CSS
-function addLoadingStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .loading-container { text-align: center; padding: 60px 20px; }
-        .loading-spinner {
-            width: 50px; height: 50px;
-            border: 3px solid #1e293b;
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: #6b7280; font-size: 14px; }
-        .error-container { text-align: center; padding: 60px 20px; color: #ef4444; }
-        .error-container i { font-size: 48px; margin-bottom: 16px; }
-        .retry-btn {
-            margin-top: 16px; padding: 8px 24px;
-            background: #3b82f6; border: none;
-            border-radius: 20px; color: white; cursor: pointer;
-        }
-        .retry-btn:hover { background: #2563eb; }
-    `;
-    document.head.appendChild(style);
+// ========== HELPERS ==========
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-    addLoadingStyles();
-    await checkAuth();
-    await fetchCSRFToken();
-    await loadProjects();
+// ========== INIT ==========
 
-    document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
-    document.getElementById('cancelModalBtn')?.addEventListener('click', closeModal);
-    document.getElementById('saveProjectBtn')?.addEventListener('click', handleCreate);
-    
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-    }
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isModalOpen) closeModal();
-    });
-    
-    document.getElementById('navRoadmap')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showToast('Roadmap planner coming soon!', 'info');
-    });
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  
+  // Add button
+  document.querySelector('.add-btn')?.addEventListener('click', openModal);
+  
+  // Modal buttons
+  document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
+  document.getElementById('cancelModalBtn')?.addEventListener('click', closeModal);
+  document.getElementById('saveProjectBtn')?.addEventListener('click', addProject);
+  
+  // Close modal on outside click
+  document.getElementById('projectModal')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('projectModal')) closeModal();
+  });
 });

@@ -1,581 +1,319 @@
-// SHIAGARI - Progress Tracker (PHP + MySQL Version)
+// SHIAGARI - Progress Tracker (Frontend Only)
 
-let currentProjectId = 'project1';
+let currentProject = 'project1';
 let tasks = [];
 
-// Project names mapping
+// Project names
 const projectNames = {
-    project1: 'Dashboard Redesign',
-    project2: 'Mobile App Launch',
-    project3: 'API Integration'
+  project1: 'Dashboard Redesign',
+  project2: 'Mobile App Launch',
+  project3: 'API Integration'
 };
 
-const STATUS_ORDER = ['notstarted', 'inprogress', 'finished'];
-const STATUS_LABELS = {
-    notstarted: '📋 NOT STARTED',
-    inprogress: '🔄 IN PROGRESS',
-    finished: '✅ FINISHED'
+// Status order for columns
+const statuses = [
+  { id: 'notstarted', label: '📋 NOT STARTED', icon: 'fa-clock' },
+  { id: 'inprogress', label: '🔄 IN PROGRESS', icon: 'fa-spinner' },
+  { id: 'finished', label: '✅ FINISHED', icon: 'fa-check-circle' }
+];
+
+// Category labels
+const categoryLabels = {
+  uiux: { name: 'UI/UX', class: 'uiux' },
+  frontend: { name: 'Frontend', class: 'frontend' },
+  backend: { name: 'Backend', class: 'backend' }
 };
 
-const CATEGORY_CONFIG = {
-    uiux: { name: 'UI/UX', color: '#ff2d75', class: 'uiux' },
-    frontend: { name: 'Frontend', color: '#3b82f6', class: 'frontend' },
-    backend: { name: 'Backend', color: '#ff3b30', class: 'backend' }
-};
+// ========== DATA (Backend: replace with API) ==========
 
-// Check if user is logged in
-async function checkAuth() {
-    try {
-        const response = await fetch('../auth/check_session.php');
-        const data = await response.json();
-        
-        if (!data.logged_in) {
-            window.location.href = '../index.php';
-        }
-        return data.logged_in;
-    } catch (error) {
-        window.location.href = '../index.php';
-    }
+function loadTasks() {
+  // TODO: Replace with fetch(`/api/tasks?project=${currentProject}`)
+  const stored = localStorage.getItem(`tasks_${currentProject}`);
+  
+  if (stored) {
+    tasks = JSON.parse(stored);
+  } else {
+    // Demo data
+    tasks = [
+      { id: 1, name: 'Wireframing', category: 'uiux', status: 'finished', progress: 100 },
+      { id: 2, name: 'High-fidelity Mockups', category: 'uiux', status: 'finished', progress: 100 },
+      { id: 3, name: 'Component Library', category: 'frontend', status: 'inprogress', progress: 65 },
+      { id: 4, name: 'API Integration', category: 'backend', status: 'inprogress', progress: 40 },
+      { id: 5, name: 'User Testing', category: 'uiux', status: 'notstarted', progress: 0 },
+      { id: 6, name: 'Deployment Setup', category: 'backend', status: 'notstarted', progress: 0 }
+    ];
+    saveTasks();
+  }
+  
+  renderKanban();
+  updateOverallProgress();
 }
 
-// Fetch tasks from database
-async function loadTasks() {
-    try {
-        const response = await fetch(`../api/tasks.php?project_id=${currentProjectId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            tasks = data.tasks;
-            renderCurrentProject();
-            updateStats();
-            updateChart();
-        } else if (data.message === 'Not logged in') {
-            window.location.href = '../index.php';
-        }
-    } catch (error) {
-        console.error('Error loading tasks:', error);
-        showToast('Error loading tasks', 'error');
-    }
+function saveTasks() {
+  // TODO: Replace with fetch(`/api/tasks/${currentProject}`, { method: 'POST' })
+  localStorage.setItem(`tasks_${currentProject}`, JSON.stringify(tasks));
+  updateOverallProgress();
 }
 
-// Add task to database
-async function addTask(name, category, status) {
-    if (!name || !name.trim()) {
-        showToast('Task name is required', 'error');
-        return false;
-    }
+function updateOverallProgress() {
+  if (tasks.length === 0) {
+    document.getElementById('overallProgress').innerText = '0';
+    return;
+  }
+  const total = tasks.reduce((sum, t) => sum + t.progress, 0);
+  const avg = Math.round(total / tasks.length);
+  document.getElementById('overallProgress').innerText = avg;
+}
+
+// ========== RENDER KANBAN ==========
+
+function renderKanban() {
+  const container = document.getElementById('kanbanContainer');
+  if (!container) return;
+  
+  let html = '';
+  
+  statuses.forEach(status => {
+    const statusTasks = tasks.filter(t => t.status === status.id);
     
-    try {
-        const response = await fetch('../api/tasks.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                project_id: currentProjectId,
-                name: name.trim(),
-                category: category,
-                status: status,
-                progress: status === 'finished' ? 100 : 0
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            await loadTasks();
-            showToast(`Task "${name}" added`, 'success');
-            return true;
-        } else {
-            showToast(data.message, 'error');
-            return false;
-        }
-    } catch (error) {
-        showToast('Error adding task', 'error');
-        return false;
-    }
-}
-
-// Update task status (drag & drop)
-async function updateTaskStatus(taskId, newStatus) {
-    try {
-        const response = await fetch('../api/tasks.php', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: taskId,
-                status: newStatus,
-                progress: newStatus === 'finished' ? 100 : undefined
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            await loadTasks();
-            showToast(`Task moved to ${STATUS_LABELS[newStatus]}`, 'success');
-            return true;
-        } else {
-            showToast(data.message, 'error');
-            return false;
-        }
-    } catch (error) {
-        showToast('Error updating task', 'error');
-        return false;
-    }
-}
-
-// Update task progress
-async function updateTaskProgress(taskId, newProgress) {
-    try {
-        const response = await fetch('../api/tasks.php', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: taskId,
-                progress: newProgress
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            await loadTasks();
-            showToast(`Progress updated to ${newProgress}%`, 'info');
-            return true;
-        } else {
-            showToast(data.message, 'error');
-            return false;
-        }
-    } catch (error) {
-        showToast('Error updating progress', 'error');
-        return false;
-    }
-}
-
-// Delete task from database
-async function deleteTask(taskId) {
-    const task = tasks.find(t => t.id == taskId);
-    if (!task) return;
+    html += `
+      <div class="column" data-status="${status.id}">
+        <div class="column-header">
+          <h3><i class="fas ${status.icon}"></i> ${status.label}</h3>
+          <span class="task-count">${statusTasks.length}</span>
+        </div>
+        <div class="tasks-container" data-status="${status.id}">
+    `;
     
-    if (confirm(`Delete "${task.name}"?`)) {
-        try {
-            const response = await fetch(`../api/tasks.php?id=${taskId}`, {
-                method: 'DELETE'
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                await loadTasks();
-                showToast(`Task deleted`, 'info');
-            } else {
-                showToast(data.message, 'error');
-            }
-        } catch (error) {
-            showToast('Error deleting task', 'error');
-        }
-    }
-}
-
-// Helper functions
-function getTasksByStatus(status) {
-    return tasks.filter(task => task.status === status);
-}
-
-function findTaskById(taskId) {
-    return tasks.find(t => t.id == taskId);
-}
-
-// Statistics
-function calculateOverallProgress() {
-    if (tasks.length === 0) return 0;
-    const totalProgress = tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
-    return Math.round(totalProgress / tasks.length);
-}
-
-function calculateCategoryProgress() {
-    const categories = { uiux: { total: 0, done: 0 }, frontend: { total: 0, done: 0 }, backend: { total: 0, done: 0 } };
-    
-    tasks.forEach(task => {
-        if (categories[task.category]) {
-            categories[task.category].total += 100;
-            categories[task.category].done += task.progress || 0;
-        }
-    });
-    
-    const result = {};
-    for (let cat in categories) {
-        const total = categories[cat].total;
-        result[cat] = total > 0 ? Math.round((categories[cat].done / total) * 100) : 0;
-    }
-    return result;
-}
-
-function updateStats() {
-    const overallProgress = calculateOverallProgress();
-    const statsSpan = document.getElementById('overallProgress');
-    if (statsSpan) statsSpan.textContent = overallProgress;
-}
-
-function updateChart() {
-    const categoryProgress = calculateCategoryProgress();
-    const uiux = categoryProgress.uiux || 0;
-    const frontend = categoryProgress.frontend || 0;
-    const backend = categoryProgress.backend || 0;
-    
-    const total = uiux + frontend + backend;
-    if (total === 0) {
-        const chartCircle = document.getElementById('chartCircle');
-        if (chartCircle) chartCircle.style.background = '#2d3f5f';
-        return;
+    if (statusTasks.length === 0) {
+      html += `<div class="empty-column">No tasks</div>`;
+    } else {
+      statusTasks.forEach(task => {
+        const category = categoryLabels[task.category] || categoryLabels.frontend;
+        html += `
+          <div class="task-card" draggable="true" data-task-id="${task.id}">
+            <div class="task-header">
+              <span class="task-name">${escapeHtml(task.name)}</span>
+              <span class="task-category category-${category.class}">${category.name}</span>
+            </div>
+            <div class="progress-container">
+              <div class="progress-label">
+                <span>Progress</span>
+                <span>${task.progress}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill ${task.progress === 100 ? 'full' : ''}" style="width: ${task.progress}%"></div>
+              </div>
+            </div>
+            <div class="task-actions">
+              <button class="task-action-btn increment" data-id="${task.id}">+10%</button>
+              <button class="task-action-btn decrement" data-id="${task.id}">-10%</button>
+              <button class="task-action-btn delete-task" data-id="${task.id}">Delete</button>
+            </div>
+          </div>
+        `;
+      });
     }
     
-    let uiuxEnd = (uiux / total) * 100;
-    let frontendEnd = uiuxEnd + (frontend / total) * 100;
-    
-    const gradient = `conic-gradient(
-        #ff2d75 0% ${uiuxEnd}%,
-        #3b82f6 ${uiuxEnd}% ${frontendEnd}%,
-        #ff3b30 ${frontendEnd}% 100%
-    )`;
-    
-    const chartCircle = document.getElementById('chartCircle');
-    if (chartCircle) chartCircle.style.background = gradient;
-    
-    const legendUIUX = document.getElementById('legendUIUX');
-    const legendFrontend = document.getElementById('legendFrontend');
-    const legendBackend = document.getElementById('legendBackend');
-    
-    if (legendUIUX) legendUIUX.textContent = `${uiux}%`;
-    if (legendFrontend) legendFrontend.textContent = `${frontend}%`;
-    if (legendBackend) legendBackend.textContent = `${backend}%`;
+    html += `
+        </div>
+        <button class="add-task-btn" data-status="${status.id}">+ Add Task</button>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Attach event handlers
+  attachTaskActions();
+  attachDragAndDrop();
+  attachAddTaskButtons();
 }
 
-// Drag and drop
+function attachTaskActions() {
+  // Increment progress
+  document.querySelectorAll('.increment').forEach(btn => {
+    btn.onclick = () => {
+      const id = parseInt(btn.dataset.id);
+      const task = tasks.find(t => t.id === id);
+      if (task && task.progress < 100) {
+        task.progress = Math.min(100, task.progress + 10);
+        if (task.progress === 100) task.status = 'finished';
+        else if (task.progress > 0 && task.status === 'notstarted') task.status = 'inprogress';
+        saveTasks();
+        renderKanban();
+        showToast('Progress increased');
+      }
+    };
+  });
+  
+  // Decrement progress
+  document.querySelectorAll('.decrement').forEach(btn => {
+    btn.onclick = () => {
+      const id = parseInt(btn.dataset.id);
+      const task = tasks.find(t => t.id === id);
+      if (task && task.progress > 0) {
+        task.progress = Math.max(0, task.progress - 10);
+        if (task.progress === 0) task.status = 'notstarted';
+        else if (task.progress < 100 && task.status === 'finished') task.status = 'inprogress';
+        saveTasks();
+        renderKanban();
+        showToast('Progress decreased');
+      }
+    };
+  });
+  
+  // Delete task
+  document.querySelectorAll('.delete-task').forEach(btn => {
+    btn.onclick = () => {
+      const id = parseInt(btn.dataset.id);
+      const task = tasks.find(t => t.id === id);
+      if (task && confirm(`Delete "${task.name}"?`)) {
+        tasks = tasks.filter(t => t.id !== id);
+        saveTasks();
+        renderKanban();
+        showToast('Task deleted');
+      }
+    };
+  });
+}
+
+function attachAddTaskButtons() {
+  document.querySelectorAll('.add-task-btn').forEach(btn => {
+    btn.onclick = () => {
+      const status = btn.dataset.status;
+      openAddTaskModal(status);
+    };
+  });
+}
+
+// ========== DRAG & DROP ==========
+
 let draggedTaskId = null;
 
 function attachDragAndDrop() {
-    const tasks = document.querySelectorAll('.task[draggable="true"]');
-    const columns = document.querySelectorAll('.column');
-    
-    tasks.forEach(task => {
-        task.setAttribute('draggable', 'true');
-        task.addEventListener('dragstart', handleDragStart);
-        task.addEventListener('dragend', handleDragEnd);
-    });
-    
-    columns.forEach(column => {
-        column.addEventListener('dragover', handleDragOver);
-        column.addEventListener('dragleave', handleDragLeave);
-        column.addEventListener('drop', handleDrop);
-    });
-}
-
-function handleDragStart(e) {
-    draggedTaskId = this.getAttribute('data-task-id');
-    this.style.opacity = '0.5';
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragEnd(e) {
-    this.style.opacity = '';
-    draggedTaskId = null;
-    document.querySelectorAll('.column').forEach(col => {
-        col.style.borderColor = '';
-    });
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    this.style.borderColor = '#3b82f6';
-}
-
-function handleDragLeave(e) {
-    this.style.borderColor = '';
-}
-
-async function handleDrop(e) {
-    e.preventDefault();
-    this.style.borderColor = '';
-    const targetColumn = this.closest('.column');
-    if (!targetColumn || !draggedTaskId) return;
-    
-    const newStatus = targetColumn.getAttribute('data-status');
-    if (newStatus) {
-        await updateTaskStatus(draggedTaskId, newStatus);
-    }
-}
-
-// Render functions
-function renderCurrentProject() {
-    renderColumns();
-    updateStats();
-    updateChart();
-}
-
-function renderColumns() {
-    const container = document.getElementById('trackerContainer');
-    if (!container) return;
-    
-    let columnsHtml = '';
-    
-    STATUS_ORDER.forEach(status => {
-        const tasksInStatus = getTasksByStatus(status);
-        const statusLabel = STATUS_LABELS[status];
-        const icon = status === 'notstarted' ? 'fa-clock' : (status === 'inprogress' ? 'fa-spinner fa-pulse' : 'fa-check-circle');
-        
-        columnsHtml += `
-            <div class="column" data-status="${status}">
-                <div class="column-header">
-                    <h3><i class="fas ${icon}"></i> ${statusLabel}</h3>
-                    <span class="task-count">${tasksInStatus.length}</span>
-                </div>
-                <div class="tasks-container" data-status="${status}">
-        `;
-        
-        if (tasksInStatus.length === 0) {
-            columnsHtml += `
-                <div class="empty-column">
-                    <i class="fas fa-inbox"></i>
-                    <p>No tasks</p>
-                </div>
-            `;
-        } else {
-            tasksInStatus.forEach(task => {
-                const category = CATEGORY_CONFIG[task.category] || CATEGORY_CONFIG.frontend;
-                columnsHtml += `
-                    <div class="task" data-task-id="${task.id}" draggable="true">
-                        <div class="task-header">
-                            <span class="task-name">${escapeHtml(task.name)}</span>
-                            <span class="task-category category-${category.class}">${category.name}</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-label">
-                                <span>Progress</span>
-                                <span>${task.progress || 0}%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill ${(task.progress || 0) === 100 ? 'full' : ''}" style="width: ${task.progress || 0}%"></div>
-                            </div>
-                        </div>
-                        <div class="task-actions">
-                            <button class="task-action-btn increment-progress" data-id="${task.id}">
-                                <i class="fas fa-plus-circle"></i> +10%
-                            </button>
-                            <button class="task-action-btn decrement-progress" data-id="${task.id}">
-                                <i class="fas fa-minus-circle"></i> -10%
-                            </button>
-                            <button class="task-action-btn delete-task" data-id="${task.id}">
-                                <i class="fas fa-trash-alt"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
+  const tasks = document.querySelectorAll('.task-card[draggable="true"]');
+  const columns = document.querySelectorAll('.column');
+  
+  tasks.forEach(task => {
+    task.ondragstart = (e) => {
+      draggedTaskId = parseInt(task.dataset.taskId);
+      task.style.opacity = '0.5';
+      e.dataTransfer.effectAllowed = 'move';
+    };
+    task.ondragend = () => {
+      task.style.opacity = '';
+      draggedTaskId = null;
+    };
+  });
+  
+  columns.forEach(column => {
+    column.ondragover = (e) => {
+      e.preventDefault();
+      column.style.borderColor = '#3b82f6';
+    };
+    column.ondragleave = () => {
+      column.style.borderColor = '';
+    };
+    column.ondrop = (e) => {
+      e.preventDefault();
+      column.style.borderColor = '';
+      const newStatus = column.dataset.status;
+      if (draggedTaskId && newStatus) {
+        const task = tasks.find(t => t.id === draggedTaskId);
+        if (task && task.status !== newStatus) {
+          task.status = newStatus;
+          if (newStatus === 'finished') task.progress = 100;
+          else if (newStatus === 'notstarted') task.progress = 0;
+          saveTasks();
+          renderKanban();
+          showToast(`Task moved to ${statuses.find(s => s.id === newStatus)?.label}`);
         }
-        
-        columnsHtml += `
-                </div>
-                <button class="add-task-btn" data-status="${status}">
-                    <i class="fas fa-plus"></i> Add Task
-                </button>
-            </div>
-        `;
-    });
-    
-    columnsHtml += `
-        <div class="chart-section">
-            <div class="chart-title">
-                <i class="fas fa-chart-pie"></i> Category Distribution
-            </div>
-            <div class="chart-circle" id="chartCircle"></div>
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-left">
-                        <div class="legend-color uiux"></div>
-                        <span>UI/UX</span>
-                    </div>
-                    <span class="legend-value" id="legendUIUX">0%</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-left">
-                        <div class="legend-color frontend"></div>
-                        <span>Frontend</span>
-                    </div>
-                    <span class="legend-value" id="legendFrontend">0%</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-left">
-                        <div class="legend-color backend"></div>
-                        <span>Backend</span>
-                    </div>
-                    <span class="legend-value" id="legendBackend">0%</span>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML = columnsHtml;
-    attachTaskEventListeners();
-    attachDragAndDrop();
+      }
+    };
+  });
 }
 
-function attachTaskEventListeners() {
-    document.querySelectorAll('.increment-progress').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const taskId = btn.getAttribute('data-id');
-            const task = findTaskById(taskId);
-            if (task) {
-                const newProgress = Math.min(100, (task.progress || 0) + 10);
-                await updateTaskProgress(taskId, newProgress);
-            }
-        });
-    });
-    
-    document.querySelectorAll('.decrement-progress').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const taskId = btn.getAttribute('data-id');
-            const task = findTaskById(taskId);
-            if (task) {
-                const newProgress = Math.max(0, (task.progress || 0) - 10);
-                await updateTaskProgress(taskId, newProgress);
-            }
-        });
-    });
-    
-    document.querySelectorAll('.delete-task').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const taskId = btn.getAttribute('data-id');
-            await deleteTask(taskId);
-        });
-    });
-    
-    document.querySelectorAll('.add-task-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const status = btn.getAttribute('data-status');
-            openAddTaskModal(status);
-        });
-    });
-}
+// ========== ADD TASK MODAL ==========
 
-// Modal functions
 let currentModalStatus = null;
 
 function openAddTaskModal(status) {
-    currentModalStatus = status;
-    const modal = document.getElementById('taskModal');
-    const modalTitle = modal.querySelector('h3');
-    modalTitle.innerHTML = `<i class="fas fa-plus-circle"></i> Add Task to ${STATUS_LABELS[status]}`;
-    document.getElementById('taskName').value = '';
-    document.getElementById('taskCategory').value = 'frontend';
-    document.getElementById('taskColumn').value = status;
-    modal.style.display = 'flex';
-    setTimeout(() => document.getElementById('taskName').focus(), 100);
+  currentModalStatus = status;
+  document.getElementById('taskModal').style.display = 'flex';
+  document.getElementById('taskName').value = '';
+  document.getElementById('taskCategory').value = 'frontend';
+  document.getElementById('taskName').focus();
 }
 
 function closeModal() {
-    document.getElementById('taskModal').style.display = 'none';
-    currentModalStatus = null;
+  document.getElementById('taskModal').style.display = 'none';
+  currentModalStatus = null;
 }
 
-async function handleSaveTask() {
-    const taskName = document.getElementById('taskName').value.trim();
-    const category = document.getElementById('taskCategory').value;
-    const status = document.getElementById('taskColumn').value;
-    
-    if (!taskName) {
-        showToast('Please enter a task name', 'error');
-        return;
-    }
-    
-    await addTask(taskName, category, status);
-    closeModal();
+function addTask() {
+  const name = document.getElementById('taskName').value.trim();
+  const category = document.getElementById('taskCategory').value;
+  
+  if (!name) {
+    showToast('Task name required', true);
+    return;
+  }
+  
+  const newTask = {
+    id: Date.now(),
+    name: name,
+    category: category,
+    status: currentModalStatus,
+    progress: currentModalStatus === 'finished' ? 100 : 0
+  };
+  
+  tasks.push(newTask);
+  saveTasks();
+  renderKanban();
+  closeModal();
+  showToast(`Task "${name}" added`);
 }
 
-// Project selector
+// ========== PROJECT SELECTOR ==========
+
 function initProjectSelector() {
-    const select = document.getElementById('projectSelect');
-    if (!select) return;
-    
-    select.addEventListener('change', async (e) => {
-        currentProjectId = e.target.value;
-        await loadTasks();
-    });
+  const select = document.getElementById('projectSelect');
+  if (!select) return;
+  
+  select.onchange = () => {
+    currentProject = select.value;
+    loadTasks();
+  };
 }
 
-// Toast notification
-let toastTimeout = null;
+// ========== TOAST ==========
 
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toastMsg');
-    const toastText = document.getElementById('toastText');
-    const iconElem = toast.querySelector('i');
-    
-    toastText.textContent = message;
-    if (type === 'error') {
-        iconElem.className = 'fas fa-exclamation-triangle';
-        iconElem.style.color = '#f97316';
-    } else if (type === 'info') {
-        iconElem.className = 'fas fa-info-circle';
-        iconElem.style.color = '#3b82f6';
-    } else {
-        iconElem.className = 'fas fa-check-circle';
-        iconElem.style.color = '#10b981';
-    }
-    
-    toast.classList.add('show');
-    if (toastTimeout) clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2500);
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('toastMsg');
+  toast.innerText = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-    await checkAuth();
-    initProjectSelector();
-    await loadTasks();
-    
-    const closeBtn = document.getElementById('closeModalBtn');
-    const cancelBtn = document.getElementById('cancelModalBtn');
-    const saveBtn = document.getElementById('saveTaskBtn');
-    const modal = document.getElementById('taskModal');
-    
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-    if (saveBtn) saveBtn.addEventListener('click', handleSaveTask);
-    
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-    }
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
-            closeModal();
-        }
-    });
-    
-    // Roadmap placeholder
-    const navRoadmap = document.getElementById('navRoadmap');
-    if (navRoadmap) {
-        navRoadmap.addEventListener('click', (e) => {
-            e.preventDefault();
-            showToast('Roadmap planner coming soon!', 'info');
-        });
-    }
+// ========== INIT ==========
+
+document.addEventListener('DOMContentLoaded', () => {
+  initProjectSelector();
+  loadTasks();
+  
+  // Modal buttons
+  document.getElementById('closeModalBtn').onclick = closeModal;
+  document.getElementById('cancelModalBtn').onclick = closeModal;
+  document.getElementById('saveTaskBtn').onclick = addTask;
+  
+  // Close modal on outside click
+  document.getElementById('taskModal').onclick = (e) => {
+    if (e.target === document.getElementById('taskModal')) closeModal();
+  };
 });
