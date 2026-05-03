@@ -3,58 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>SHIAGARI - Roadmap</title>
+  <title>SHIAGARI · Roadmap</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="roadmap.css">
 </head>
 <body>
 
-<aside class="sidebar">
-  <h1>SHIAGARI</h1>
-  <nav>
-    <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
-    <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
-    <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
-    <a href="../roadmap/roadmap.html" class="active"><i class="fas fa-map"></i> <span>Roadmap</span></a>
-    <a href="../postboard/postboard.html"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
-    <a href="../message/message.html"><i class="fas fa-comments"></i> <span>Chats</span></a>
-  </nav>
-</aside>
+  <aside class="sidebar">
+    <h1>SHIAGARI</h1>
+    <nav>
+      <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+      <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+      <a href="../progress/progress.html"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+      <a href="../roadmap/roadmap.html" class="active"><i class="fas fa-map"></i> <span>Roadmap</span></a>
+      <a href="../postboard/postboard.html"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
+      <a href="../message/message.html"><i class="fas fa-comments"></i> <span>Chats</span></a>
+    </nav>
+  </aside>
 
-<main class="main">
-  <div class="topbar">
-    <h1 class="title"><i class="fas fa-map"></i> ROADMAP</h1>
-    <div class="stats-badge">
-      <i class="fas fa-calendar-alt"></i>
-      <span id="timelineSpan">Q2 2026</span>
-    </div>
-  </div>
-
-  <div class="timeline-container">
-    <div class="timeline-header">
-      <div class="label-placeholder"></div>
-      <div class="quarter-labels">
-        <span>Q1</span>
-        <span>Q2</span>
-        <span>Q3</span>
-        <span>Q4</span>
+  <main class="main">
+    <div class="topbar">
+      <h1 class="title"><i class="fas fa-map"></i> ROADMAP</h1>
+      <div class="stats-badge">
+        <i class="fas fa-calendar-alt"></i>
+        <span id="timelineSpan">0 epics</span>
       </div>
     </div>
 
-    <div class="timeline" id="timeline">
-      <!-- Dynamic roadmap items will be injected here -->
-    </div>
-  </div>
+    <div class="timeline-container">
+      <div class="timeline-header">
+        <div class="label-placeholder"></div>
+        <div class="quarter-labels">
+          <span>Q1</span>
+          <span>Q2</span>
+          <span>Q3</span>
+          <span>Q4</span>
+        </div>
+      </div>
 
-  <div class="action-buttons">
-    <button class="btn btn-primary" id="addEpicBtn">
-      <i class="fas fa-plus"></i> Add Epic
-    </button>
-    <button class="btn btn-secondary" id="viewTasksBtn">
-      <i class="fas fa-tasks"></i> View All Tasks
-    </button>
-  </div>
+      <div class="timeline" id="timeline">
+        <!-- Dynamic roadmap items will be injected here -->
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="addEpicBtn">
+        <i class="fas fa-plus"></i> Add Epic
+      </button>
+      <button class="btn btn-secondary" id="viewTasksBtn">
+        <i class="fas fa-tasks"></i> View All
+      </button>
+    </div>
+  </main>
 
   <!-- Add/Edit Epic Modal -->
   <div class="modal" id="epicModal">
@@ -105,11 +106,11 @@
     </div>
   </div>
 
-  <!-- Tasks Modal (View Tasks) -->
+  <!-- View All Modal -->
   <div class="modal" id="tasksModal">
     <div class="modal-content tasks-modal">
       <div class="modal-header">
-        <h3><i class="fas fa-tasks"></i> All Epic Tasks</h3>
+        <h3><i class="fas fa-tasks"></i> All Epics</h3>
         <button class="modal-close" id="closeTasksModalBtn">&times;</button>
       </div>
       <div class="modal-body" id="tasksModalBody">
@@ -121,14 +122,11 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
   <div class="toast" id="toastMsg">
     <i class="fas fa-check-circle"></i>
     <span id="toastText">Epic saved!</span>
   </div>
 
-</main>
-
-<script src="roadmap.js"></script>
+  <script src="roadmap.js"></script>
 </body>
 </html>

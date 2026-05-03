@@ -3,44 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>SHIAGARI - Progress Tracker</title>
+  <title>SHIAGARI · Progress Tracker</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="progress.css">
 </head>
 <body>
 
-<aside class="sidebar">
-  <h1>SHIAGARI</h1>
-  <nav>
-    <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
-    <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
-    <a href="../progress/progress.html" class="active"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
-    <a href="#" id="navRoadmap"><i class="fas fa-clipboard-list"></i> <span>Roadmap</span></a>
-  </nav>
-</aside>
+  <aside class="sidebar">
+    <h1>SHIAGARI</h1>
+    <nav>
+      <a href="../landing/landing.html"><i class="fas fa-project-diagram"></i> <span>Projects</span></a>
+      <a href="../idea/idea.html"><i class="fas fa-lightbulb"></i> <span>Idea Factory</span></a>
+      <a href="../progress/progress.html" class="active"><i class="fas fa-chart-line"></i> <span>Progress Tracker</span></a>
+      <a href="../roadmap/roadmap.html"><i class="fas fa-map"></i> <span>Roadmap</span></a>
+      <a href="../postboard/postboard.html"><i class="fas fa-newspaper"></i> <span>Post Board</span></a>
+      <a href="../message/message.html"><i class="fas fa-comments"></i> <span>Chats</span></a>
+    </nav>
+  </aside>
 
-<main class="main">
-  <header class="topbar">
-    <div class="header-left">
-      <h2><i class="fas fa-chart-simple"></i> Progress Tracker</h2>
-      <div class="project-selector">
-        <select id="projectSelect">
-          <option value="project1">Project 1 - Dashboard Redesign</option>
-          <option value="project2">Project 2 - Mobile App Launch</option>
-          <option value="project3">Project 3 - API Integration</option>
-        </select>
+  <main class="main">
+    <header class="topbar">
+      <div class="header-left">
+        <h2><i class="fas fa-chart-simple"></i> Progress Tracker</h2>
+        <div class="project-selector">
+          <select id="projectSelect">
+            <option value="project1">Project 1 - Dashboard Redesign</option>
+            <option value="project2">Project 2 - Mobile App Launch</option>
+            <option value="project3">Project 3 - API Integration</option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="stats-badge">
-      <i class="fas fa-rocket"></i>
-      <span id="overallProgress">0</span>% complete
-    </div>
-  </header>
+      <div class="stats-badge">
+        <i class="fas fa-rocket"></i>
+        <span id="overallProgress">0</span>% complete
+      </div>
+    </header>
 
-  <div class="tracker" id="trackerContainer">
-    <!-- Dynamic columns will be injected here -->
-  </div>
+    <div class="tracker" id="trackerContainer">
+      <!-- Dynamic columns will be injected here -->
+    </div>
+  </main>
 
   <!-- Add Task Modal -->
   <div class="modal" id="taskModal">
@@ -78,14 +81,11 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
   <div class="toast" id="toastMsg">
     <i class="fas fa-check-circle"></i>
     <span id="toastText">Task updated!</span>
   </div>
 
-</main>
-
-<script src="progress.js"></script>
+  <script src="progress.js"></script>
 </body>
 </html>
