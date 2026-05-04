@@ -349,7 +349,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <div class="footer">
-        <p>© 2024 SHIAGARI · Rise to the challenge</p>
+        <p>© 2026 SHIAGARI · Rise to the challenge</p>
     </div>
 </div>
 
