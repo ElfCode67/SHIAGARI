@@ -39,7 +39,6 @@ if (isset($_SESSION['user_id'])) {
             margin: 0 auto;
         }
 
-        /* Hero Section */
         .hero {
             text-align: center;
             margin-bottom: 60px;
@@ -63,7 +62,6 @@ if (isset($_SESSION['user_id'])) {
             margin: 0 auto;
         }
 
-        /* Cards Container */
         .cards-container {
             display: flex;
             gap: 32px;
@@ -136,7 +134,6 @@ if (isset($_SESSION['user_id'])) {
             color: white;
         }
 
-        /* Stats Section */
         .stats {
             display: flex;
             justify-content: center;
@@ -162,7 +159,6 @@ if (isset($_SESSION['user_id'])) {
             color: #6b7280;
         }
 
-        /* Footer */
         .footer {
             text-align: center;
             margin-top: 60px;
@@ -170,7 +166,6 @@ if (isset($_SESSION['user_id'])) {
             font-size: 12px;
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -291,6 +286,35 @@ if (isset($_SESSION['user_id'])) {
             color: white;
         }
 
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #1e293b;
+            padding: 12px 20px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(400px);
+            transition: 0.3s;
+            z-index: 1100;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 48px;
@@ -305,13 +329,11 @@ if (isset($_SESSION['user_id'])) {
 <body>
 
 <div class="landing-container">
-    <!-- Hero Section -->
     <div class="hero">
         <h1>SHIAGARI</h1>
         <p>Rise to the challenge. A modern productivity suite for creative teams.</p>
     </div>
 
-    <!-- Cards -->
     <div class="cards-container">
         <div class="card" id="loginCard">
             <div class="card-icon">
@@ -332,7 +354,6 @@ if (isset($_SESSION['user_id'])) {
         </div>
     </div>
 
-    <!-- Stats -->
     <div class="stats">
         <div class="stat-item">
             <span class="stat-number">6</span>
@@ -349,7 +370,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <div class="footer">
-        <p>© 2026 SHIAGARI · Rise to the challenge</p>
+        <p>© 2024 SHIAGARI · Rise to the challenge</p>
     </div>
 </div>
 
@@ -408,10 +429,21 @@ if (isset($_SESSION['user_id'])) {
     </div>
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
     // Modal elements
     const loginModal = document.getElementById('loginModal');
     const signupModal = document.getElementById('signupModal');
+    const toast = document.getElementById('toast');
+
+    function showToast(message, isError = false) {
+        toast.textContent = message;
+        toast.className = isError ? 'toast error show' : 'toast success show';
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
 
     // Open modals
     document.getElementById('loginCard').onclick = () => {
@@ -450,18 +482,57 @@ if (isset($_SESSION['user_id'])) {
         if (e.target === signupModal) signupModal.classList.remove('active');
     };
 
-    // Handle Login (placeholder - will connect to backend)
+    // Handle Login
     document.getElementById('loginForm').onsubmit = async (e) => {
         e.preventDefault();
-        // TODO: Connect to auth/login.php
-        alert('Login functionality coming soon!');
+        
+        const formData = new FormData();
+        formData.append('login', document.getElementById('loginEmail').value);
+        formData.append('password', document.getElementById('loginPassword').value);
+        
+        try {
+            const response = await fetch('auth/login.php', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message);
+                setTimeout(() => {
+                    window.location.href = 'dashboard.php';
+                }, 1000);
+            } else {
+                showToast(data.message, true);
+            }
+        } catch (error) {
+            showToast('Connection error. Please try again.', true);
+        }
     };
 
-    // Handle Signup (placeholder - will connect to backend)
+    // Handle Signup
     document.getElementById('signupForm').onsubmit = async (e) => {
         e.preventDefault();
-        // TODO: Connect to auth/register.php
-        alert('Signup functionality coming soon!');
+        
+        const formData = new FormData();
+        formData.append('full_name', document.getElementById('signupFullName').value);
+        formData.append('username', document.getElementById('signupUsername').value);
+        formData.append('email', document.getElementById('signupEmail').value);
+        formData.append('password', document.getElementById('signupPassword').value);
+        formData.append('confirm_password', document.getElementById('signupConfirmPassword').value);
+        
+        try {
+            const response = await fetch('auth/register.php', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message);
+                setTimeout(() => {
+                    window.location.href = 'dashboard.php';
+                }, 1000);
+            } else {
+                showToast(data.message, true);
+            }
+        } catch (error) {
+            showToast('Connection error. Please try again.', true);
+        }
     };
 </script>
 
